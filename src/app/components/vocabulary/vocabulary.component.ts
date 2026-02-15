@@ -327,10 +327,12 @@ get examplesArray() {
     this.reviewCards = this.vocabService.getCardsForReview();
     this.currentReviewIndex = 0;
     this.showAnswer = false;
-    this.reviewInProgress = true;
+    this.reviewInProgress = this.reviewCards.length > 0;
     this.reviewResults = { correct: 0, incorrect: 0 };
-    this.lastReviewDate = new Date();
-    localStorage.setItem('lastReviewDate', this.lastReviewDate.toISOString());
+    if (this.reviewInProgress) {
+      this.lastReviewDate = new Date();
+      localStorage.setItem('lastReviewDate', this.lastReviewDate.toISOString());
+    }
   }
 
   reviewAnswer(correct: boolean): void {
@@ -405,14 +407,10 @@ get examplesArray() {
 
   // View Management
   switchView(view: ViewType): void {
-    this.activeView = view;
     if (this.reviewInProgress && view !== 'review') {
-      if (!confirm('Are you sure you want to leave the review session?')) {
-        return;
-      }
       this.reviewInProgress = false;
     }
-    
+
     this.activeView = view;
     if (view === 'review') {
       this.startReviewSession();

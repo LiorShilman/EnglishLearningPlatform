@@ -176,15 +176,14 @@ export class EnhancedClaudeService {
 
   private parseContent(content: string): { english: string; hebrew: string } {
     try {
-      const [englishPart = '', hebrewPart = ''] = content.split('Hebrew:');
+      const [englishPart = '', ...hebrewParts] = content.split('Hebrew:');
+      const hebrewPart = hebrewParts.join('Hebrew:');
 
       let english = englishPart.replace('English:', '').trim();
-      if (english.startsWith('[') && english.endsWith(']')) {
-        english = english.slice(1, -1).trim();
-      }
+      english = english.replace(/^\[|\]$/g, '').trim();
 
-      const hebrewMatch = hebrewPart.match(/\[([\s\S]*?)\]/);
-      const hebrew = hebrewMatch ? hebrewMatch[1].trim() : '';
+      let hebrew = hebrewPart.trim();
+      hebrew = hebrew.replace(/^\[|\]$/g, '').trim();
 
       return { english, hebrew };
     } catch (error) {

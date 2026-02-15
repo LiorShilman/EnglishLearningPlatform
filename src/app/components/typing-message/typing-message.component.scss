@@ -1,8 +1,16 @@
 .typing-cursor {
-    animation: blink 1s infinite;
-  }
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background: #7B8CDE;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: cursorBlink 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border-radius: 1px;
+  box-shadow: 0 0 4px rgba(123, 140, 222, 0.3);
+}
 
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-  }
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

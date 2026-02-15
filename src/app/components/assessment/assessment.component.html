@@ -6,9 +6,62 @@
     <div class="hebrew">עד כמה אתה מרגיש בנוח עם אנגלית בתחומים הבאים?</div>
   </div>
 
+  <!-- Radar Chart -->
+  <div class="radar-container" [class.has-data]="getSelectedCount() > 0">
+    <svg viewBox="0 0 180 180" class="radar-svg">
+      <defs>
+        <radialGradient id="radarFill" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(123, 140, 222, 0.4)" />
+          <stop offset="100%" stop-color="rgba(123, 140, 222, 0.08)" />
+        </radialGradient>
+      </defs>
+
+      <!-- Grid rings -->
+      <polygon *ngFor="let ring of [1, 2, 3, 4]"
+        [attr.points]="getRadarRingPoints(ring)"
+        class="radar-ring" />
+
+      <!-- Axis lines -->
+      <line *ngFor="let skill of skillsToAssess; let i = index"
+        x1="90" y1="90"
+        [attr.x2]="getRadarAxisEnd(i).x"
+        [attr.y2]="getRadarAxisEnd(i).y"
+        class="radar-axis" />
+
+      <!-- Data polygon -->
+      <polygon *ngIf="getSelectedCount() > 0"
+        [attr.points]="getRadarPoints()"
+        fill="url(#radarFill)"
+        class="radar-data" />
+
+      <!-- Data points -->
+      <ng-container *ngFor="let skill of skillsToAssess; let i = index">
+        <circle *ngIf="skill.selectedLevel"
+          [attr.cx]="getRadarAxisEnd(i).x * (skill.selectedLevel! / 4) + 90 * (1 - skill.selectedLevel! / 4)"
+          [attr.cy]="getRadarAxisEnd(i).y * (skill.selectedLevel! / 4) + 90 * (1 - skill.selectedLevel! / 4)"
+          r="4"
+          [attr.fill]="skillColors[skill.key]"
+          class="radar-point" />
+      </ng-container>
+
+      <!-- Labels -->
+      <text *ngFor="let skill of skillsToAssess; let i = index"
+        [attr.x]="getRadarLabelPos(i).x"
+        [attr.y]="getRadarLabelPos(i).y"
+        class="radar-label"
+        [attr.fill]="skillColors[skill.key]"
+        text-anchor="middle"
+        dominant-baseline="middle">
+        {{skill.nameEn}}
+      </text>
+    </svg>
+  </div>
+
   <div class="skills-list">
-    <div class="skill-item" *ngFor="let skill of skillsToAssess; trackBy: trackBySkillKey">
+    <div class="skill-item" *ngFor="let skill of skillsToAssess; trackBy: trackBySkillKey"
+         [style.border-color]="skill.selectedLevel ? skillColors[skill.key] + '30' : ''">
       <div class="skill-title">
+        <span class="skill-dot" [style.background]="skillColors[skill.key]"></span>
         <span class="english">{{skill.nameEn}}</span>
         <span class="hebrew">{{skill.nameHe}}</span>
       </div>
@@ -17,6 +70,7 @@
         <button *ngFor="let level of levels; trackBy: trackByLevelValue"
           class="level-btn"
           [class.selected]="skill.selectedLevel === level.value"
+          [style.--level-color]="levelColors[level.value]"
           (click)="selectLevel(skill, level.value)">
           <span class="level-name-en">{{level.nameEn}}</span>
           <span class="level-name-he">{{level.nameHe}}</span>

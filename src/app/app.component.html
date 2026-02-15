@@ -100,22 +100,26 @@
           </div>
         </div>
       </div>
+
+      <!-- Right Panel: Actions & Suggestions -->
+      <div class="actions-panel">
+        <div class="actions-buttons">
+          <button class="vocabulary-toggle" (click)="toggleVocabulary()">
+            <span *ngIf="isVocabularyVisible">📖</span>
+            <span *ngIf="!isVocabularyVisible">📚</span>
+          </button>
+
+          <app-summary
+            #summaryComponent
+            [chatMessages]="chatMessages"
+            (closeSummary)="onCloseSummary()">
+          </app-summary>
+
+          <button class="scroll-to-bottom" *ngIf="showScrollButton" (click)="scrollToBottom()">
+            ⬇️
+          </button>
+        </div>
+      </div>
     </div>
-
-    <!-- Floating Buttons -->
-    <button class="vocabulary-toggle" (click)="toggleVocabulary()">
-      <span *ngIf="isVocabularyVisible">📖</span>
-      <span *ngIf="!isVocabularyVisible">📚</span>
-    </button>
-
-    <app-summary
-      #summaryComponent
-      [chatMessages]="chatMessages"
-      (closeSummary)="onCloseSummary()">
-    </app-summary>
-
-    <button class="scroll-to-bottom" *ngIf="showScrollButton" (click)="scrollToBottom()">
-      ⬇️
-    </button>
   </section>
 </div>

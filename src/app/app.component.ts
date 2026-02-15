@@ -121,24 +121,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         this.initVirtualAvatar();
       }
 
-      const context: ServiceContext = {
-        userLevel: this.userLevel,
-        previousMessages: [],
-        conversationContext: {
-          isFirstMessage: true,
-          currentTopic: null,
-          lastProgressUpdate: undefined
-        }
-      };
-
-      const initialMessage = await this.enhancedClaudeService.sendEnhancedMessage(
-        'START_CONVERSATION',
-        context
-      );
-
-      this.chatMessages.push(initialMessage);
+      this.chatMessages.push(this.buildWelcomeMessage(this.userLevel));
       this.currentStage = 'conversation';
-      this.scrollToBottom();
+      setTimeout(() => this.scrollToBottom(), 150);
     } catch (error) {
       console.error('[AppComponent] Error during assessment completion:', error);
     }
@@ -221,6 +206,25 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       });
     } catch (error) {
       console.error('Error scrolling to bottom:', error);
+    }
+  }
+
+  scrollToLastMessage(): void {
+    try {
+      if (!this.scrollContainer?.nativeElement) return;
+
+      const container = this.scrollContainer.nativeElement;
+      const messages = container.querySelectorAll('.message-container');
+      const lastMessage = messages[messages.length - 1] as HTMLElement;
+      if (lastMessage) {
+        const messageTop = lastMessage.offsetTop - container.offsetTop;
+        container.scrollTo({
+          top: messageTop - 12,
+          behavior: 'smooth'
+        });
+      }
+    } catch (error) {
+      console.error('Error scrolling to last message:', error);
     }
   }
 
@@ -319,7 +323,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       };
 
       this.chatMessages.push(userMessage);
-      this.checkScrollPosition();
+      setTimeout(() => this.scrollToBottom(), 50);
 
       this.enhancedClaudeService.stopSpeech();
       const isFirstUserMessage = this.chatMessages.filter(m => m.sender === 'user').length === 0;
@@ -349,6 +353,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       await this.virtualAvatar?.speak(response.english);
 
       this.chatMessages.push(response);
+      setTimeout(() => this.scrollToLastMessage(), 50);
 
       setTimeout(() => {
         this.virtualAvatar?.setMood('normal');
@@ -356,13 +361,11 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
       await this.processVocabulary(context);
 
-      setTimeout(() => this.scrollToBottom(), 100);
-
       if (response.feedback && response.feedback.length > 0) {
         this.updateProgress(response);
       }
 
-      this.scrollToBottom();
+      setTimeout(() => this.scrollToLastMessage(), 150);
     } catch (error) {
       console.error('Error in chat:', error);
       this.handleError();
@@ -454,5 +457,85 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   trackByExampleIndex(index: number): number {
     return index;
+  }
+
+  private buildWelcomeMessage(level: UserLevel): EnhancedChatMessage {
+    const levelNames: Record<number, { en: string; he: string }> = {
+      1: { en: 'Beginner', he: 'מתחיל' },
+      2: { en: 'Elementary', he: 'בסיסי' },
+      3: { en: 'Intermediate', he: 'בינוני' },
+      4: { en: 'Advanced', he: 'מתקדם' }
+    };
+
+    const skillRows = (['writing', 'grammar', 'vocabulary', 'speaking'] as const)
+      .map(skill => {
+        const val = level[skill];
+        const name = levelNames[val] || levelNames[1];
+        const label = skill.charAt(0).toUpperCase() + skill.slice(1);
+        return `| ${label} | ${name.en} (${val}) |`;
+      }).join('\n');
+
+    const english = `# Welcome to Your English Learning Journey
+
+Hello! I'm your AI English learning companion. I'm excited to help you improve your English skills through engaging conversations and personalized feedback!
+
+---
+
+## Your Current English Profile
+
+| Skill | Level |
+|-------|-------|
+${skillRows}
+
+---
+
+## Let's Start a Conversation
+
+Choose a topic that interests you, or suggest your own:
+
+### Daily Life Topics
+1. **My Daily Routine** - Talk about your typical day
+2. **My Favorite Food** - Describe what you like to eat
+3. **My Family** - Tell me about the people in your family
+
+### Fun & Creative Topics
+1. **My Hobbies** - What do you do for fun?
+2. **Weekend Plans** - What do you like to do on weekends?
+
+### Simple Practice Scenarios
+1. **At the Store** - Practice shopping conversations
+2. **Meeting Someone New** - Practice introductions
+
+---
+
+## How This Works
+- You write in English
+- I help you correct mistakes
+- I explain grammar simply
+- We practice together
+- You improve step by step
+
+Which topic would you like to talk about? Or tell me your own idea!
+Type your choice (1-7) or write your own topic in English!`;
+
+    const hebrew = `# ברוך הבא למסע לימוד האנגלית שלך
+
+היי! אני קלוד, המלווה שלך ללימוד אנגלית. אני כאן לעזור לך לשפר את האנגלית שלך בצורה מהנה!
+
+### הרמה שלך כרגע
+- כתיבה: ${levelNames[level.writing]?.he || 'מתחיל'} - נתמקד במשפטים פשוטים
+- דקדוק: ${levelNames[level.grammar]?.he || 'מתחיל'} - נלמד חוקים בסיסיים
+- אוצר מילים: ${levelNames[level.vocabulary]?.he || 'מתחיל'} - נרחיב את המילים שלך
+- דיבור: ${levelNames[level.speaking]?.he || 'מתחיל'} - נתרגל ביטויים יומיומיים
+
+בחר נושא שמעניין אותך, או הצע נושא משלך!`;
+
+    return {
+      sender: 'assistant',
+      english,
+      hebrew,
+      learningBlocks: [],
+      timestamp: new Date()
+    };
   }
 }
