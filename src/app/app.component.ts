@@ -19,6 +19,8 @@ import { VirtualAvatarComponent } from './components/virtual-avatar/virtual-avat
 import { VirtualAvatarService } from './services/virtual-avatar.service';
 import { AssessmentComponent } from './components/assessment/assessment.component';
 import { SummaryComponent } from './components/summary/summary.component';
+import { ConversationStorageService } from './services/conversation-storage.service';
+import { SessionMetadata } from './shared/interfaces/conversation-session.interfaces';
 
 @Component({
   selector: 'app-root',
@@ -73,9 +75,14 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   chatMessages: EnhancedChatMessage[] = [];
   currentTopic: Topic | null = null;
 
+  private sessionId: string | null = null;
+  showHistory = false;
+  conversationHistory: SessionMetadata[] = [];
+
   constructor(
     private enhancedClaudeService: EnhancedClaudeService,
     private vocabularyService: VocabularyService,
+    private conversationStorageService: ConversationStorageService,
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef
   ) {
@@ -86,6 +93,36 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.setupSpeechRecognition();
+    this.attemptSessionRestore();
+  }
+
+  private async attemptSessionRestore(): Promise<void> {
+    try {
+      const session = await this.conversationStorageService.loadActiveSession();
+      if (!session) return;
+
+      this.sessionId = session._id || null;
+      this.userLevel = session.userLevel;
+      this.chatMessages = session.chatMessages;
+      this.currentTopic = session.currentTopic;
+      this.lastProgressUpdate = session.lastProgressUpdate;
+      this.currentStage = session.currentStage;
+      this.userAssessmentComplete = true;
+
+      this.cdr.detectChanges();
+
+      setTimeout(() => {
+        if (this.scrollContainer?.nativeElement) {
+          this.initScrollContainer();
+        }
+        if (this.virtualAvatar) {
+          this.initVirtualAvatar();
+        }
+        this.scrollToBottom();
+      }, 200);
+    } catch (error) {
+      console.error('Error restoring session:', error);
+    }
   }
 
   ngAfterViewInit() {
@@ -123,6 +160,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
       this.chatMessages.push(this.buildWelcomeMessage(this.userLevel));
       this.currentStage = 'conversation';
+      this.saveCurrentSession();
       setTimeout(() => this.scrollToBottom(), 150);
     } catch (error) {
       console.error('[AppComponent] Error during assessment completion:', error);
@@ -353,7 +391,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       await this.virtualAvatar?.speak(response.english);
 
       this.chatMessages.push(response);
-      setTimeout(() => this.scrollToLastMessage(), 50);
+      setTimeout(() => this.scrollToLastMessage(), 100);
 
       setTimeout(() => {
         this.virtualAvatar?.setMood('normal');
@@ -365,7 +403,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         this.updateProgress(response);
       }
 
-      setTimeout(() => this.scrollToLastMessage(), 150);
+      this.saveCurrentSession();
     } catch (error) {
       console.error('Error in chat:', error);
       this.handleError();
@@ -457,6 +495,85 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   trackByExampleIndex(index: number): number {
     return index;
+  }
+
+  private async saveCurrentSession(): Promise<void> {
+    try {
+      const data = {
+        userLevel: this.userLevel,
+        chatMessages: this.chatMessages,
+        currentTopic: this.currentTopic,
+        lastProgressUpdate: this.lastProgressUpdate,
+        currentStage: this.currentStage
+      };
+
+      if (this.sessionId) {
+        await this.conversationStorageService.saveSession(this.sessionId, data);
+      } else {
+        const created = await this.conversationStorageService.createSession(data);
+        if (created?._id) {
+          this.sessionId = created._id;
+        }
+      }
+    } catch (error) {
+      console.error('Error saving session:', error);
+    }
+  }
+
+  async startNewConversation(): Promise<void> {
+    if (this.sessionId) {
+      await this.conversationStorageService.archiveSession(this.sessionId);
+    }
+
+    this.sessionId = null;
+    this.userLevel = { speaking: 0, writing: 0, grammar: 0, vocabulary: 0 };
+    this.chatMessages = [];
+    this.currentTopic = null;
+    this.lastProgressUpdate = undefined;
+    this.currentStage = 'assessment';
+    this.userAssessmentComplete = false;
+    this.showHistory = false;
+  }
+
+  async toggleHistory(): Promise<void> {
+    this.showHistory = !this.showHistory;
+    if (this.showHistory) {
+      this.conversationHistory = await this.conversationStorageService.getHistory();
+    }
+  }
+
+  async loadConversation(sessionMeta: SessionMetadata): Promise<void> {
+    // Archive current active session first
+    if (this.sessionId) {
+      await this.conversationStorageService.archiveSession(this.sessionId);
+    }
+
+    const session = await this.conversationStorageService.loadSession(sessionMeta.id);
+    if (!session) return;
+
+    // Reactivate the loaded session
+    await this.conversationStorageService.reactivateSession(sessionMeta.id);
+
+    this.sessionId = session._id || null;
+    this.userLevel = session.userLevel;
+    this.chatMessages = session.chatMessages;
+    this.currentTopic = session.currentTopic;
+    this.lastProgressUpdate = session.lastProgressUpdate;
+    this.currentStage = session.currentStage;
+    this.userAssessmentComplete = true;
+    this.showHistory = false;
+
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      if (this.scrollContainer?.nativeElement) {
+        this.initScrollContainer();
+      }
+      if (this.virtualAvatar) {
+        this.initVirtualAvatar();
+      }
+      this.scrollToBottom();
+    }, 200);
   }
 
   private buildWelcomeMessage(level: UserLevel): EnhancedChatMessage {

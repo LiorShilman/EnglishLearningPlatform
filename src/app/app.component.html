@@ -118,6 +118,37 @@
           <button class="scroll-to-bottom" *ngIf="showScrollButton" (click)="scrollToBottom()">
             ⬇️
           </button>
+
+          <button class="new-conversation-btn" (click)="startNewConversation()" title="Start new conversation | שיחה חדשה">
+            ＋
+          </button>
+
+          <button class="history-btn" (click)="toggleHistory()" title="Conversation history | היסטוריית שיחות"
+                  [class.active]="showHistory">
+            ☰
+          </button>
+        </div>
+
+        <!-- History Panel -->
+        <div class="history-panel" *ngIf="showHistory">
+          <div class="history-header">
+            <span class="english">Past Conversations</span>
+            <span class="hebrew">שיחות קודמות</span>
+          </div>
+          <div class="history-empty" *ngIf="conversationHistory.length === 0">
+            <span class="english">No past conversations</span>
+            <span class="hebrew">אין שיחות קודמות</span>
+          </div>
+          <div class="history-list">
+            <button class="history-item" *ngFor="let session of conversationHistory"
+                    (click)="loadConversation(session)">
+              <div class="history-topic">{{ session.topicName || 'General Conversation' }}</div>
+              <div class="history-meta">
+                <span>{{ session.messageCount }} messages</span>
+                <span>{{ session.updatedAt | date:'dd/MM HH:mm' }}</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>
