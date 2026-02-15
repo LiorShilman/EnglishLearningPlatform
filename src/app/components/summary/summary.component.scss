@@ -1,34 +1,6 @@
+// Button is hidden - triggered externally via the FAB bar
 .summary-button {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #7B8CDE, #6B7CCE, #8E9BE6);
-  color: white;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 20px rgba(123, 140, 222, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-
-  .icon {
-    font-size: 1.2rem;
-  }
-
-  .button-text {
-    display: none;
-  }
-
-  &:hover {
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(123, 140, 222, 0.25);
-  }
-
-  &:active {
-    transform: translateY(0) scale(0.98);
-  }
+  display: none !important;
 }
 
 .summary-modal {
@@ -252,18 +224,6 @@
 }
 
 @media (max-width: 768px) {
-  .summary-button {
-    bottom: 80px;
-    right: 16px;
-    height: 44px;
-    padding: 0 16px;
-
-    .button-text {
-      .english { font-size: 0.85rem; }
-      .hebrew { font-size: 0.75rem; }
-    }
-  }
-
   .summary-modal {
     padding: 0.75rem;
   }

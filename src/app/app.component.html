@@ -1,4 +1,18 @@
 <div class="conversation-container">
+  <!-- Ambient Particles -->
+  <div class="ambient-particles" aria-hidden="true">
+    <span class="particle" style="--size:3px; --color:rgba(123,140,222,0.12); --duration:18s; --delay:0s; --drift:30px; --max-opacity:0.2; left:10%"></span>
+    <span class="particle" style="--size:5px; --color:rgba(112,193,179,0.1); --duration:22s; --delay:3s; --drift:-40px; --max-opacity:0.15; left:25%"></span>
+    <span class="particle" style="--size:2px; --color:rgba(182,164,206,0.15); --duration:16s; --delay:1s; --drift:60px; --max-opacity:0.25; left:40%"></span>
+    <span class="particle" style="--size:4px; --color:rgba(255,185,151,0.1); --duration:25s; --delay:5s; --drift:-20px; --max-opacity:0.15; left:55%"></span>
+    <span class="particle" style="--size:3px; --color:rgba(123,140,222,0.1); --duration:20s; --delay:2s; --drift:45px; --max-opacity:0.2; left:70%"></span>
+    <span class="particle" style="--size:6px; --color:rgba(112,193,179,0.08); --duration:28s; --delay:7s; --drift:-55px; --max-opacity:0.12; left:85%"></span>
+    <span class="particle" style="--size:2px; --color:rgba(182,164,206,0.12); --duration:15s; --delay:4s; --drift:35px; --max-opacity:0.2; left:15%"></span>
+    <span class="particle" style="--size:4px; --color:rgba(123,140,222,0.1); --duration:23s; --delay:6s; --drift:-30px; --max-opacity:0.15; left:60%"></span>
+    <span class="particle" style="--size:3px; --color:rgba(255,185,151,0.08); --duration:19s; --delay:8s; --drift:50px; --max-opacity:0.18; left:35%"></span>
+    <span class="particle" style="--size:5px; --color:rgba(112,193,179,0.1); --duration:21s; --delay:0s; --drift:-45px; --max-opacity:0.15; left:90%"></span>
+  </div>
+
   <!-- Assessment Section -->
   <app-assessment
     *ngIf="!userAssessmentComplete"
@@ -15,6 +29,27 @@
 
       <!-- Right Panel: Chat -->
       <div class="chat-panel">
+        <!-- Gamification Bar -->
+        <div class="gamification-bar">
+          <div class="level-badge">
+            <span class="level-number">{{ gamificationLevel }}</span>
+            <span class="level-label">Level</span>
+          </div>
+
+          <div class="xp-section">
+            <div class="xp-bar">
+              <div class="xp-fill" [style.width.%]="xpPercentage"></div>
+            </div>
+            <span class="xp-text">{{ currentXP }} / {{ requiredXP }} XP</span>
+          </div>
+
+          <div class="streak-counter" *ngIf="streakDays > 0">
+            <span class="streak-flame"></span>
+            <span class="streak-value">{{ streakDays }}</span>
+            <span class="streak-label">day{{ streakDays !== 1 ? 's' : '' }}</span>
+          </div>
+        </div>
+
         <!-- Chat Header -->
         <div class="chat-header">
           <div class="chat-header-title">
@@ -30,19 +65,17 @@
             <span class="hebrew">נושא נוכחי: {{currentTopic.hebrew}}</span>
           </div>
 
-          <div class="progress-display" *ngIf="lastProgressUpdate">
-            <div class="progress-metrics">
-              <div class="metric" *ngFor="let metric of getProgressMetrics(); trackBy: trackByMessageIndex">
-                <div class="metric-label">
-                  <span class="english">{{metric.nameEn}}</span>
-                  <span class="hebrew">{{metric.nameHe}}</span>
-                </div>
-
-                <div class="progress-bar">
-                  <div class="progress-fill" [style.width.%]="metric.value"></div>
-                </div>
-
-                <span class="metric-value">{{metric.value}}%</span>
+          <div class="progress-rings" *ngIf="lastProgressUpdate">
+            <div class="ring-item" *ngFor="let metric of getProgressMetrics(); trackBy: trackByMessageIndex">
+              <svg class="progress-ring" viewBox="0 0 48 48">
+                <circle class="ring-bg" cx="24" cy="24" r="20" />
+                <circle class="ring-fill" cx="24" cy="24" r="20"
+                  [attr.stroke-dashoffset]="getStrokeDashoffset(metric.value)"
+                  [style.stroke]="getMetricColor(metric.nameEn)" />
+              </svg>
+              <div class="ring-label">
+                <span class="ring-value">{{metric.value}}</span>
+                <span class="ring-name">{{metric.nameEn}}</span>
               </div>
             </div>
           </div>
@@ -51,31 +84,63 @@
         <!-- Chat Messages -->
         <div #scrollContainer class="chat-messages">
           <div *ngFor="let message of chatMessages; trackBy: trackByMessageIndex" class="message-container {{message.sender}}">
-            <div class="message-content">
-              <div class="message-text">
-                <div class="english" [innerHTML]="(message.english || '') | markdown"></div>
-                <div class="hebrew" [innerHTML]="(message.hebrew || '') | markdown"></div>
+            <div class="message-row">
+              <!-- Assistant avatar -->
+              <div class="message-avatar assistant-avatar" *ngIf="message.sender === 'assistant'">
+                <div class="mini-avatar">
+                  <div class="mini-eye"></div>
+                  <div class="mini-eye"></div>
+                </div>
               </div>
 
-              <div class="learning-blocks" *ngIf="message.learningBlocks?.length">
-                <div *ngFor="let block of message.learningBlocks; trackBy: trackByBlockIndex" class="learning-block {{block.type}}">
-                  <div class="block-header">
-                    <span class="block-icon">{{getBlockIcon(block.type)}}</span>
-                    <span class="block-title">{{block.title}}</span>
-                  </div>
+              <div class="message-content">
+                <div class="message-text">
+                  <div class="english" [innerHTML]="(message.english || '') | markdown"></div>
+                  <div class="hebrew" [innerHTML]="(message.hebrew || '') | markdown"></div>
+                </div>
 
-                  <div class="block-content">
-                    <div class="english" [innerHTML]="block.content.english | markdown"></div>
-                    <div class="hebrew" [innerHTML]="block.content.hebrew | markdown"></div>
-                  </div>
+                <div class="learning-blocks" *ngIf="message.learningBlocks?.length">
+                  <div *ngFor="let block of message.learningBlocks; trackBy: trackByBlockIndex" class="learning-block {{block.type}}">
+                    <div class="block-header">
+                      <span class="block-icon">{{getBlockIcon(block.type)}}</span>
+                      <span class="block-title">{{block.title}}</span>
+                    </div>
 
-                  <div class="examples" *ngIf="block.examples?.length">
-                    <div class="example" *ngFor="let example of block.examples; trackBy: trackByExampleIndex">
-                      <div class="english" [innerHTML]="example.english | markdown"></div>
-                      <div class="hebrew" [innerHTML]="example.hebrew | markdown"></div>
+                    <div class="block-content">
+                      <div class="english" [innerHTML]="block.content.english | markdown"></div>
+                      <div class="hebrew" [innerHTML]="block.content.hebrew | markdown"></div>
+                    </div>
+
+                    <div class="examples" *ngIf="block.examples?.length">
+                      <div class="example" *ngFor="let example of block.examples; trackBy: trackByExampleIndex">
+                        <div class="english" [innerHTML]="example.english | markdown"></div>
+                        <div class="hebrew" [innerHTML]="example.hebrew | markdown"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <!-- User avatar -->
+              <div class="message-avatar user-avatar" *ngIf="message.sender === 'user'">
+                <span>U</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Thinking Indicator -->
+          <div class="thinking-indicator" *ngIf="isAssistantThinking">
+            <div class="message-row">
+              <div class="message-avatar assistant-avatar">
+                <div class="mini-avatar">
+                  <div class="mini-eye"></div>
+                  <div class="mini-eye"></div>
+                </div>
+              </div>
+              <div class="thinking-bubble">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
               </div>
             </div>
           </div>
@@ -100,57 +165,89 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Right Panel: Actions & Suggestions -->
-      <div class="actions-panel">
-        <div class="actions-buttons">
-          <button class="vocabulary-toggle" (click)="toggleVocabulary()">
-            <span *ngIf="isVocabularyVisible">📖</span>
-            <span *ngIf="!isVocabularyVisible">📚</span>
-          </button>
+    <!-- Floating Action Bar -->
+    <div class="floating-actions">
+      <button class="fab-btn primary" (click)="toggleVocabulary()" [title]="isVocabularyVisible ? 'Hide Vocabulary' : 'Show Vocabulary'">
+        <span class="fab-icon">V</span>
+      </button>
 
-          <app-summary
-            #summaryComponent
-            [chatMessages]="chatMessages"
-            (closeSummary)="onCloseSummary()">
-          </app-summary>
+      <button class="fab-btn" (click)="onShowSummary()" title="Conversation Summary | סיכום שיחה">
+        <span class="fab-icon">S</span>
+      </button>
 
-          <button class="scroll-to-bottom" *ngIf="showScrollButton" (click)="scrollToBottom()">
-            ⬇️
-          </button>
+      <button class="fab-btn" *ngIf="showScrollButton" (click)="scrollToBottom()" title="Scroll to bottom">
+        <span class="fab-icon scroll-icon">&#x2193;</span>
+      </button>
 
-          <button class="new-conversation-btn" (click)="startNewConversation()" title="Start new conversation | שיחה חדשה">
-            ＋
-          </button>
+      <button class="fab-btn" (click)="startNewConversation()" title="New conversation | שיחה חדשה">
+        <span class="fab-icon">+</span>
+      </button>
 
-          <button class="history-btn" (click)="toggleHistory()" title="Conversation history | היסטוריית שיחות"
-                  [class.active]="showHistory">
-            ☰
-          </button>
+      <button class="fab-btn" (click)="toggleHistory()" [class.active]="showHistory" title="Conversation history | היסטוריית שיחות">
+        <span class="fab-icon">&#x2630;</span>
+      </button>
+    </div>
+
+    <!-- Summary Component (outside FAB to avoid stacking context trap) -->
+    <app-summary
+      #summaryComponent
+      [chatMessages]="chatMessages"
+      (closeSummary)="onCloseSummary()">
+    </app-summary>
+
+    <!-- History Drawer -->
+    <div class="history-backdrop" *ngIf="showHistory" (click)="toggleHistory()"></div>
+    <div class="history-drawer" [class.open]="showHistory">
+      <div class="history-drawer-header">
+        <div class="history-drawer-title">
+          <span class="english">Conversations</span>
+          <span class="hebrew">שיחות</span>
+        </div>
+        <button class="history-close" (click)="toggleHistory()">
+          <span>&#x2715;</span>
+        </button>
+      </div>
+
+      <div class="history-drawer-body">
+        <div class="history-empty" *ngIf="conversationHistory.length === 0">
+          <div class="empty-icon"></div>
+          <span class="english">No past conversations yet</span>
+          <span class="hebrew">אין עדיין שיחות קודמות</span>
         </div>
 
-        <!-- History Panel -->
-        <div class="history-panel" *ngIf="showHistory">
-          <div class="history-header">
-            <span class="english">Past Conversations</span>
-            <span class="hebrew">שיחות קודמות</span>
-          </div>
-          <div class="history-empty" *ngIf="conversationHistory.length === 0">
-            <span class="english">No past conversations</span>
-            <span class="hebrew">אין שיחות קודמות</span>
-          </div>
-          <div class="history-list">
-            <button class="history-item" *ngFor="let session of conversationHistory"
-                    (click)="loadConversation(session)">
+        <div class="history-item" *ngFor="let session of conversationHistory">
+          <button class="history-item-content" (click)="loadConversation(session)">
+            <div class="history-item-icon"></div>
+            <div class="history-item-info">
               <div class="history-topic">{{ session.topicName || 'General Conversation' }}</div>
               <div class="history-meta">
-                <span>{{ session.messageCount }} messages</span>
-                <span>{{ session.updatedAt | date:'dd/MM HH:mm' }}</span>
+                <span class="meta-messages">{{ session.messageCount }} messages</span>
+                <span class="meta-date">{{ session.updatedAt | date:'dd/MM/yy HH:mm' }}</span>
               </div>
-            </button>
-          </div>
+            </div>
+          </button>
+          <button class="history-delete" (click)="deleteConversation(session, $event)" title="Delete | מחק">
+            <span>&#x2715;</span>
+          </button>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Celebration Overlay -->
+  <div class="celebration-overlay" *ngIf="showCelebration">
+    <div class="celebration-content">
+      <div class="celebration-icon">{{ celebrationIcon }}</div>
+      <div class="celebration-text">
+        <span class="english">{{ celebrationTextEn }}</span>
+        <span class="hebrew">{{ celebrationTextHe }}</span>
+      </div>
+    </div>
+    <div class="confetti-container" aria-hidden="true">
+      <span *ngFor="let i of confettiPieces; trackBy: trackByMessageIndex" class="confetti" [style.--i]="i"
+        [style.background]="getConfettiColor(i)"></span>
+    </div>
+  </div>
 </div>

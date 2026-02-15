@@ -93,6 +93,18 @@ export class ConversationStorageService {
     }
   }
 
+  async deleteSession(id: string): Promise<boolean> {
+    try {
+      await firstValueFrom(
+        this.http.delete(`${this.apiUrl}/api/conversations/${id}`)
+      );
+      return true;
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      return false;
+    }
+  }
+
   async reactivateSession(id: string): Promise<void> {
     try {
       await firstValueFrom(

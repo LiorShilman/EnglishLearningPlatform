@@ -21,6 +21,8 @@ import { AssessmentComponent } from './components/assessment/assessment.componen
 import { SummaryComponent } from './components/summary/summary.component';
 import { ConversationStorageService } from './services/conversation-storage.service';
 import { SessionMetadata } from './shared/interfaces/conversation-session.interfaces';
+import { GamificationService } from './services/gamification.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -79,10 +81,26 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   showHistory = false;
   conversationHistory: SessionMetadata[] = [];
 
+  // Gamification
+  gamificationLevel = 1;
+  currentXP = 0;
+  requiredXP = 100;
+  xpPercentage = 0;
+  streakDays = 0;
+  private gamificationSub?: Subscription;
+
+  // Celebration
+  showCelebration = false;
+  celebrationIcon = '';
+  celebrationTextEn = '';
+  celebrationTextHe = '';
+  confettiPieces = Array.from({ length: 12 }, (_, i) => i);
+
   constructor(
     private enhancedClaudeService: EnhancedClaudeService,
     private vocabularyService: VocabularyService,
     private conversationStorageService: ConversationStorageService,
+    private gamificationService: GamificationService,
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef
   ) {
@@ -94,6 +112,36 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit() {
     this.setupSpeechRecognition();
     this.attemptSessionRestore();
+    this.setupGamification();
+  }
+
+  private setupGamification(): void {
+    this.gamificationSub = this.gamificationService.currentState$.subscribe(state => {
+      this.gamificationLevel = state.level;
+      this.streakDays = state.streak;
+      const xpInfo = this.gamificationService.getXPToNextLevel();
+      this.currentXP = xpInfo.current;
+      this.requiredXP = xpInfo.required;
+      this.xpPercentage = xpInfo.percentage;
+    });
+  }
+
+  triggerCelebration(icon: string, textEn: string, textHe: string): void {
+    this.showCelebration = true;
+    this.celebrationIcon = icon;
+    this.celebrationTextEn = textEn;
+    this.celebrationTextHe = textHe;
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      this.showCelebration = false;
+      this.cdr.detectChanges();
+    }, 3000);
+  }
+
+  getConfettiColor(index: number): string {
+    const colors = ['#7B8CDE', '#70C1B3', '#FFB997', '#B6A4CE', '#4ade80', '#FF6B6B'];
+    return colors[index % colors.length];
   }
 
   private async attemptSessionRestore(): Promise<void> {
@@ -161,6 +209,12 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.chatMessages.push(this.buildWelcomeMessage(this.userLevel));
       this.currentStage = 'conversation';
       this.saveCurrentSession();
+
+      const leveledUp = this.gamificationService.addXP(50);
+      if (leveledUp) {
+        this.triggerCelebration('🎓', 'Level Up!', 'עלית רמה!');
+      }
+
       setTimeout(() => this.scrollToBottom(), 150);
     } catch (error) {
       console.error('[AppComponent] Error during assessment completion:', error);
@@ -287,6 +341,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.annyang.abort();
     }
     this.enhancedClaudeService.stopSpeech();
+    this.gamificationSub?.unsubscribe();
   }
 
   // Speech Recognition
@@ -352,6 +407,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.userInput.trim()) return;
 
     try {
+      this.isAssistantThinking = true;
       await this.virtualAvatar?.think();
 
       const userMessage: ChatMessage = {
@@ -382,6 +438,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         context
       );
 
+      this.isAssistantThinking = false;
+
       if (response.english.includes('correct') || response.english.includes('Well done')) {
         this.virtualAvatar?.setMood('happy');
       } else if (response.english.includes('mistake') || response.english.toLowerCase().includes('error')) {
@@ -392,6 +450,13 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
       this.chatMessages.push(response);
       setTimeout(() => this.scrollToLastMessage(), 100);
+
+      // Gamification: award XP for sending a message
+      this.gamificationService.incrementMessages();
+      const leveledUp = this.gamificationService.addXP(10);
+      if (leveledUp) {
+        this.triggerCelebration('⭐', 'Level Up!', 'עלית רמה!');
+      }
 
       setTimeout(() => {
         this.virtualAvatar?.setMood('normal');
@@ -406,6 +471,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.saveCurrentSession();
     } catch (error) {
       console.error('Error in chat:', error);
+      this.isAssistantThinking = false;
       this.handleError();
     }
   }
@@ -464,6 +530,21 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     return avgLevel <= 2
       ? "Type your message in English... | הקלד/י את ההודעה שלך באנגלית..."
       : "Express yourself in English... | התבטא/י באנגלית...";
+  }
+
+  getStrokeDashoffset(value: number): number {
+    const circumference = 2 * Math.PI * 20;
+    return circumference - (value / 100) * circumference;
+  }
+
+  getMetricColor(name: string): string {
+    const colors: Record<string, string> = {
+      'Speaking': '#7B8CDE',
+      'Writing': '#70C1B3',
+      'Grammar': '#FFB997',
+      'Vocabulary': '#B6A4CE'
+    };
+    return colors[name] || '#7B8CDE';
   }
 
   getBlockIcon(type: string): string {
@@ -542,6 +623,18 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  async deleteConversation(sessionMeta: SessionMetadata, event: Event): Promise<void> {
+    event.stopPropagation();
+
+    const confirmed = confirm('Delete this conversation?\nלמחוק שיחה זו?');
+    if (!confirmed) return;
+
+    const success = await this.conversationStorageService.deleteSession(sessionMeta.id);
+    if (success) {
+      this.conversationHistory = this.conversationHistory.filter(s => s.id !== sessionMeta.id);
+    }
+  }
+
   async loadConversation(sessionMeta: SessionMetadata): Promise<void> {
     // Archive current active session first
     if (this.sessionId) {
@@ -549,7 +642,12 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const session = await this.conversationStorageService.loadSession(sessionMeta.id);
-    if (!session) return;
+    if (!session) {
+      // Remove stale entry from history list and notify user
+      this.conversationHistory = this.conversationHistory.filter(s => s.id !== sessionMeta.id);
+      alert('לא ניתן לטעון שיחה זו — ייתכן שנמחקה.\nThis conversation could not be loaded — it may have been deleted.');
+      return;
+    }
 
     // Reactivate the loaded session
     await this.conversationStorageService.reactivateSession(sessionMeta.id);

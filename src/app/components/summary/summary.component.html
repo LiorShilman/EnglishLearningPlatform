@@ -1,6 +1,6 @@
 <!-- Summary Button -->
 <button class="summary-button" (click)="openSummary()">
-  <span class="icon">📋</span>
+  <span class="icon">S</span>
   <div class="button-text">
     <span class="english">Summary</span>
     <span class="hebrew">סיכום</span>
@@ -33,7 +33,7 @@
 
           <div class="explanations-list" *ngIf="correction.explanations?.length">
             <div class="explanation-row" *ngFor="let explanation of correction.explanations; trackBy: trackByExplanationIndex">
-              <span class="info-icon">ℹ️</span>
+              <span class="info-icon">i</span>
               <span class="explanation-text">{{explanation}}</span>
             </div>
           </div>

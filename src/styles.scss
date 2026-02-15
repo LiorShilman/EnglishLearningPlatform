@@ -45,8 +45,8 @@
   // --- Shadows ---
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(123, 140, 222, 0.05);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 80px rgba(123, 140, 222, 0.03);
   --shadow-glow: 0 0 20px var(--accent-primary-glow);
   --shadow-glow-lg: 0 0 40px var(--accent-primary-glow);
 
@@ -65,8 +65,15 @@
   --duration-slow: 400ms;
 
   // --- Glass ---
-  --glass-blur: blur(16px);
-  --glass-blur-heavy: blur(24px);
+  --glass-blur: blur(20px);
+  --glass-blur-heavy: blur(32px);
+  --glass-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  // --- Aurora ---
+  --aurora-1: rgba(123, 140, 222, 0.12);
+  --aurora-2: rgba(112, 193, 179, 0.08);
+  --aurora-3: rgba(182, 164, 206, 0.08);
+  --aurora-4: rgba(255, 185, 151, 0.06);
 }
 
 // ============================================
@@ -87,6 +94,21 @@ body {
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
   overflow-x: hidden;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 40%, var(--aurora-1) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 60% at 75% 20%, var(--aurora-2) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 70% at 50% 80%, var(--aurora-3) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 85% 70%, var(--aurora-4) 0%, transparent 60%);
+    animation: auroraShift 20s ease-in-out infinite alternate;
+    will-change: transform, opacity;
+  }
 }
 
 // Hebrew text gets its own font
@@ -144,6 +166,69 @@ body {
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+@keyframes auroraShift {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  33% {
+    transform: scale(1.05) rotate(1deg);
+    opacity: 0.85;
+  }
+  66% {
+    transform: scale(0.98) rotate(-0.5deg);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1.02) rotate(0.5deg);
+    opacity: 0.9;
+  }
+}
+
+@keyframes thinkingDot {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes particleDrift {
+  0% {
+    transform: translateY(100vh) translateX(0);
+    opacity: 0;
+  }
+  10% { opacity: var(--max-opacity, 0.2); }
+  90% { opacity: var(--max-opacity, 0.2); }
+  100% {
+    transform: translateY(-10vh) translateX(var(--drift, 50px));
+    opacity: 0;
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(
+      calc((var(--i) - 6) * 80px),
+      calc(100vh * 0.6)
+    ) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes celebrationPop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 // ============================================

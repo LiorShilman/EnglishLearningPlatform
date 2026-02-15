@@ -35,6 +35,31 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET /api/conversations/history - List past sessions (metadata only)
+// IMPORTANT: Must be defined BEFORE /:id to avoid being caught by the param route
+router.get('/history', async (req, res) => {
+  try {
+    const sessions = await Conversation.find({ isActive: false })
+      .sort({ updatedAt: -1 })
+      .limit(20)
+      .select('userLevel currentTopic currentStage createdAt updatedAt chatMessages');
+
+    const metadata = sessions.map(s => ({
+      id: s._id,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+      messageCount: s.chatMessages.length,
+      topicName: s.currentTopic?.english || null,
+      userLevel: s.userLevel
+    }));
+
+    res.json(metadata);
+  } catch (error) {
+    console.error('Error loading history:', error.message);
+    res.status(500).json({ error: 'Failed to load history' });
+  }
+});
+
 // GET /api/conversations/:id - Get a specific session
 router.get('/:id', async (req, res) => {
   try {
@@ -74,6 +99,20 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/conversations/:id - Delete a conversation
+router.delete('/:id', async (req, res) => {
+  try {
+    const deleted = await Conversation.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    res.json({ deleted: true });
+  } catch (error) {
+    console.error('Error deleting session:', error.message);
+    res.status(500).json({ error: 'Failed to delete session' });
+  }
+});
+
 // POST /api/conversations/:id/archive - Archive current and start new
 router.post('/:id/archive', async (req, res) => {
   try {
@@ -82,30 +121,6 @@ router.post('/:id/archive', async (req, res) => {
   } catch (error) {
     console.error('Error archiving session:', error.message);
     res.status(500).json({ error: 'Failed to archive session' });
-  }
-});
-
-// GET /api/conversations/history - List past sessions (metadata only)
-router.get('/history', async (req, res) => {
-  try {
-    const sessions = await Conversation.find({ isActive: false })
-      .sort({ updatedAt: -1 })
-      .limit(20)
-      .select('userLevel currentTopic currentStage createdAt updatedAt chatMessages');
-
-    const metadata = sessions.map(s => ({
-      id: s._id,
-      createdAt: s.createdAt,
-      updatedAt: s.updatedAt,
-      messageCount: s.chatMessages.length,
-      topicName: s.currentTopic?.english || null,
-      userLevel: s.userLevel
-    }));
-
-    res.json(metadata);
-  } catch (error) {
-    console.error('Error loading history:', error.message);
-    res.status(500).json({ error: 'Failed to load history' });
   }
 });
 
