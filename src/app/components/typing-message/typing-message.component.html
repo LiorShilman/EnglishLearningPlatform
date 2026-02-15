@@ -1,0 +1,9 @@
+<div class="message-content">
+    <div class="english">
+      {{ displayedEnglish }}
+      <span class="typing-cursor" *ngIf="isTyping">|</span>
+    </div>
+    <div class="hebrew" *ngIf="displayedHebrew">
+      {{ displayedHebrew }}
+    </div>
+  </div>

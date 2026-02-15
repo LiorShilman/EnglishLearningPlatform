@@ -1,0 +1,270 @@
+<div class="vocabulary-container">
+  <!-- Navigation -->
+  <nav class="nav-tabs">
+    <button *ngFor="let view of viewTypes" [class.active]="activeView === view" (click)="switchView(view)">
+      {{ view | titlecase }}
+    </button>
+  </nav>
+
+  <!-- Cards View -->
+  <section *ngIf="activeView === 'cards'" class="cards-view">
+    <!-- Search and Filters -->
+    <div class="filters-container">
+      <input type="text" [(ngModel)]="searchQuery" placeholder="Search cards..." class="search-input">
+
+      <select [(ngModel)]="filterCategory">
+        <option [ngValue]="null">All Categories</option>
+        <option *ngFor="let cat of categories" [value]="cat">
+          {{ cat | titlecase }}
+        </option>
+      </select>
+
+      <select [(ngModel)]="filterLevel">
+        <option [ngValue]="null">All Levels</option>
+        <option *ngFor="let level of levels" [value]="level">
+          Level {{ level }}
+        </option>
+      </select>
+
+      <button (click)="clearFilters()" class="clear-btn">
+        Clear Filters
+      </button>
+    </div>
+
+    <div class="cards-grid-container">
+      <div class="cards-grid">
+        <div *ngFor="let card of applyFilters()" class="vocab-card">
+          <div class="card-header">
+            <span class="level">Level {{ card.level }}</span>
+            <span class="category">{{ card.category | titlecase }}</span>
+          </div>
+
+          <div class="card-content">
+            <h3 class="english">{{ card.english }}</h3>
+            <h4 class="hebrew">{{ card.hebrew }}</h4>
+
+            <div *ngIf="card.pronunciation" class="pronunciation">
+              /{{ card.pronunciation }}/
+            </div>
+
+            <div class="examples" *ngIf="card.examples?.length">
+              <div *ngFor="let ex of card.examples" class="example">
+                <div class="english">{{ ex.english }}</div>
+                <div class="hebrew">{{ ex.hebrew }}</div>
+              </div>
+            </div>
+
+            <div class="tags" *ngIf="card.tags?.length">
+              <span *ngFor="let tag of card.tags" class="tag">
+                {{ tag }}
+              </span>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <button (click)="editCard(card)" class="edit-btn">Edit</button>
+            <button (click)="deleteCard(card.id)" class="delete-btn">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Review View -->
+  <section *ngIf="activeView === 'review'" class="review-view">
+    <div *ngIf="reviewCards.length === 0" class="no-cards">
+      No cards to review at this time!
+    </div>
+
+    <div *ngIf="reviewCards.length > 0" class="review-card">
+      <div class="progress">
+        {{ currentReviewIndex + 1 }} / {{ reviewCards.length }}
+      </div>
+
+      <div class="card-content">
+        <h3 class="english">{{ reviewCards[currentReviewIndex].english }}</h3>
+
+        <div *ngIf="showAnswer" class="answer">
+          <h4 class="hebrew">{{ reviewCards[currentReviewIndex].hebrew }}</h4>
+          <div *ngIf="reviewCards[currentReviewIndex].pronunciation" class="pronunciation">
+            /{{ reviewCards[currentReviewIndex].pronunciation }}/
+          </div>
+        </div>
+
+        <div class="actions">
+          <button *ngIf="!showAnswer" (click)="toggleAnswer()" class="show-btn">
+            Show Answer
+          </button>
+
+          <div *ngIf="showAnswer" class="review-actions">
+            <button (click)="reviewAnswer(false)" class="incorrect-btn">
+              Incorrect
+            </button>
+            <button (click)="reviewAnswer(true)" class="correct-btn">
+              Correct
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats View Section -->
+  <section class="stats-view" *ngIf="activeView === 'stats'">
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <!-- Total Cards -->
+      <div class="stat-card">
+        <h3>Total Cards</h3>
+        <div class="value">
+          {{ stats.totalCards }}
+        </div>
+      </div>
+
+      <!-- Mastered -->
+      <div class="stat-card">
+        <h3>Mastered</h3>
+        <div class="value">
+          {{ stats.masteredCards }}
+        </div>
+      </div>
+
+      <!-- To Review -->
+      <div class="stat-card">
+        <h3>To Review</h3>
+        <div class="value">
+          {{ stats.cardsToReview }}
+        </div>
+      </div>
+
+      <!-- Accuracy -->
+      <div class="stat-card">
+        <h3>Accuracy</h3>
+        <div class="value">
+          {{ stats.averageAccuracy | number:'1.0-0' }}%
+        </div>
+      </div>
+    </div>
+
+    <!-- Categories and Levels Breakdown -->
+    <div class="breakdown">
+      <!-- Categories Breakdown -->
+      <div class="breakdown-section category-breakdown">
+        <h3>Categories</h3>
+        <div class="breakdown-item" *ngFor="let cat of categories">
+          <span class="item-label">{{ cat | titlecase }}</span>
+          <span class="item-value">{{ stats.categoryBreakdown[cat] || 0 }}</span>
+        </div>
+      </div>
+
+      <!-- Levels Breakdown -->
+      <div class="breakdown-section level-breakdown">
+        <h3>Levels</h3>
+        <div class="breakdown-item" *ngFor="let level of levels">
+          <span class="item-label">Level {{ level }}</span>
+          <span class="item-value">{{ stats.levelBreakdown[level] || 0 }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Add/Edit View -->
+  <section *ngIf="activeView === 'add'" class="add-view">
+    <form [formGroup]="cardForm" (ngSubmit)="submitCard()">
+      <div class="form-group">
+        <label>English</label>
+        <input type="text" formControlName="english">
+      </div>
+
+      <div class="form-group">
+        <label>Hebrew</label>
+        <input type="text" formControlName="hebrew">
+      </div>
+
+      <div class="form-group">
+        <label>Pronunciation (optional)</label>
+        <input type="text" formControlName="pronunciation">
+      </div>
+
+      <div class="form-group">
+        <label>Category</label>
+        <select formControlName="category">
+          <option *ngFor="let cat of categories" [value]="cat">
+            {{ cat | titlecase }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Level</label>
+        <select formControlName="level">
+          <option *ngFor="let level of levels" [value]="level">
+            Level {{ level }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Tags (comma separated)</label>
+        <input type="text" formControlName="tags">
+      </div>
+
+      <div formArrayName="examples">
+        <h4>Examples</h4>
+        <button type="button" (click)="addExample()">Add Example</button>
+
+        <div *ngFor="let example of examplesArray.controls; let i=index">
+          <div [formGroupName]="i" class="example-form">
+            <input formControlName="english" placeholder="English example">
+            <input formControlName="hebrew" placeholder="Hebrew example">
+            <input formControlName="context" placeholder="Context (optional)">
+            <button type="button" (click)="removeExample(i)">Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" [disabled]="!cardForm.valid">Save Card</button>
+    </form>
+  </section>
+
+  <!-- Suggestions Container -->
+  <div class="suggestions-container"
+    *ngIf="(showSuggestions$ | async) === true && (suggestedCards$ | async)?.length! > 0">
+    <!-- Header -->
+    <div class="suggestions-header">
+      <h3>מילים מוצעות מהשיחה</h3>
+      <button (click)="closeSuggestions()">×</button>
+    </div>
+
+    <!-- Cards -->
+    <div class="suggested-cards">
+      <ng-container *ngIf="suggestedCards$ | async as suggestedCards">
+        <div *ngFor="let card of suggestedCards" class="suggested-card">
+          <div class="card-content">
+            <!-- Word Info -->
+            <div class="word-info">
+              <h4>{{ card.english }} - {{ card.hebrew }}</h4>
+              <p *ngIf="card.context">Context: {{ card.context }}</p>
+            </div>
+
+            <!-- Examples -->
+            <div class="examples" *ngIf="card.examples && card.examples.length > 0">
+              <h5>Examples:</h5>
+              <ul>
+                <li *ngFor="let example of card.examples">
+                  {{ example.english }} - {{ example.hebrew }}
+                </li>
+              </ul>
+            </div>
+
+            <!-- Actions -->
+            <div class="card-actions">
+              <button (click)="addSuggestedCard(card)" class="add-btn">Add</button>
+              <button (click)="rejectSuggestion(card)" class="reject-btn">Reject</button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>

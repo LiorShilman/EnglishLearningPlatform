@@ -1,0 +1,26 @@
+<div class="learning-block {{ block.type }}" 
+         *ngIf="isVisible" 
+         [@fadeIn]>
+      <div class="block-header">
+        <span class="block-icon">{{ getBlockIcon(block.type) }}</span>
+        <span class="block-title">{{ block.title }}</span>
+      </div>
+
+      <div class="block-content">
+        <div class="english" *ngIf="displayedEnglish">
+          {{ displayedEnglish }}
+        </div>
+        <div class="hebrew" *ngIf="displayedHebrew">
+          {{ displayedHebrew }}
+        </div>
+      </div>
+
+      <div class="examples" *ngIf="block.examples?.length">
+        <div class="example" 
+             *ngFor="let example of block.examples; let i = index"
+             [@fadeInUp]="{ value: '', params: { delay: i * 200 } }">
+          <div class="english">{{ example.english }}</div>
+          <div class="hebrew">{{ example.hebrew }}</div>
+        </div>
+      </div>
+    </div>

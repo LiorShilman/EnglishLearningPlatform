@@ -1,0 +1,15 @@
+<div class="avatar-animated" [ngClass]="{
+           'speaking': isSpeaking,
+           'thinking': isThinking,
+           'happy': currentMood === 'happy',
+           'concerned': currentMood === 'concerned'
+         }">
+  <div class="face">
+    <div class="eyes">
+      <div class="eye"></div>
+      <div class="eye"></div>
+    </div>
+    <div class="mouth"></div>
+  </div>
+  <div class="mood-indicator"></div>
+</div>
