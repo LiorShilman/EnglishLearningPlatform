@@ -487,6 +487,22 @@ get examplesArray() {
     return card.id;
   }
 
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  trackByView(index: number, view: ViewType): string {
+    return view;
+  }
+
+  trackByCategory(index: number, cat: VocabCategory): string {
+    return cat;
+  }
+
+  trackByLevel(index: number, level: LevelNumber): number {
+    return level;
+  }
+
   formatDate(date: Date): string {
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',

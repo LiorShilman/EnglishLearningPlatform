@@ -1,35 +1,9 @@
 <div class="conversation-container">
   <!-- Assessment Section -->
-  <section class="assessment-section" *ngIf="!userAssessmentComplete">
-    <h1>English Learning Platform</h1>
-
-    <div class="assessment-title">
-      <div class="english">How comfortable are you with English in these areas?</div>
-      <div class="hebrew">עד כמה אתה מרגיש בנוח עם אנגלית בתחומים הבאים?</div>
-    </div>
-
-    <div class="skills-list">
-      <div class="skill-item" *ngFor="let skill of skillsToAssess">
-        <div class="skill-title">
-          <span class="english">{{skill.nameEn}}</span>
-          <span class="hebrew">{{skill.nameHe}}</span>
-        </div>
-
-        <div class="level-selection">
-          <button *ngFor="let level of levels" class="level-btn" [class.selected]="skill.selectedLevel === level.value"
-            (click)="selectLevel(skill, level.value)">
-            <span class="level-name-en">{{level.nameEn}}</span>
-            <span class="level-name-he">{{level.nameHe}}</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <button class="complete-btn" [disabled]="!areAllSkillsAssessed()" (click)="completeAssessment()">
-      <span class="english">Continue</span>
-      <span class="hebrew">המשך</span>
-    </button>
-  </section>
+  <app-assessment
+    *ngIf="!userAssessmentComplete"
+    (assessmentComplete)="onAssessmentComplete($event)">
+  </app-assessment>
 
   <!-- Main Chat Section -->
   <section class="chat-section" *ngIf="userAssessmentComplete">
@@ -58,7 +32,7 @@
 
           <div class="progress-display" *ngIf="lastProgressUpdate">
             <div class="progress-metrics">
-              <div class="metric" *ngFor="let metric of getProgressMetrics()">
+              <div class="metric" *ngFor="let metric of getProgressMetrics(); trackBy: trackByMessageIndex">
                 <div class="metric-label">
                   <span class="english">{{metric.nameEn}}</span>
                   <span class="hebrew">{{metric.nameHe}}</span>
@@ -76,7 +50,7 @@
 
         <!-- Chat Messages -->
         <div #scrollContainer class="chat-messages">
-          <div *ngFor="let message of chatMessages" class="message-container {{message.sender}}">
+          <div *ngFor="let message of chatMessages; trackBy: trackByMessageIndex" class="message-container {{message.sender}}">
             <div class="message-content">
               <div class="message-text">
                 <div class="english" [innerHTML]="(message.english || '') | markdown"></div>
@@ -84,7 +58,7 @@
               </div>
 
               <div class="learning-blocks" *ngIf="message.learningBlocks?.length">
-                <div *ngFor="let block of message.learningBlocks" class="learning-block {{block.type}}">
+                <div *ngFor="let block of message.learningBlocks; trackBy: trackByBlockIndex" class="learning-block {{block.type}}">
                   <div class="block-header">
                     <span class="block-icon">{{getBlockIcon(block.type)}}</span>
                     <span class="block-title">{{block.title}}</span>
@@ -96,7 +70,7 @@
                   </div>
 
                   <div class="examples" *ngIf="block.examples?.length">
-                    <div class="example" *ngFor="let example of block.examples">
+                    <div class="example" *ngFor="let example of block.examples; trackBy: trackByExampleIndex">
                       <div class="english" [innerHTML]="example.english | markdown"></div>
                       <div class="hebrew" [innerHTML]="example.hebrew | markdown"></div>
                     </div>
@@ -129,57 +103,19 @@
     </div>
 
     <!-- Floating Buttons -->
-    <button class="vocabulary-toggle" (click)="toggleVocabulary()" *ngIf="userAssessmentComplete">
+    <button class="vocabulary-toggle" (click)="toggleVocabulary()">
       <span *ngIf="isVocabularyVisible">📖</span>
       <span *ngIf="!isVocabularyVisible">📚</span>
     </button>
 
-    <button class="summary-button" (click)="showConversationSummary()" *ngIf="userAssessmentComplete">
-      <span class="icon">📋</span>
-      <div class="button-text">
-        <span class="english">Summary</span>
-        <span class="hebrew">סיכום</span>
-      </div>
-    </button>
+    <app-summary
+      #summaryComponent
+      [chatMessages]="chatMessages"
+      (closeSummary)="onCloseSummary()">
+    </app-summary>
 
     <button class="scroll-to-bottom" *ngIf="showScrollButton" (click)="scrollToBottom()">
       ⬇️
     </button>
-
-    <!-- Summary Modal -->
-    <div class="summary-modal" *ngIf="showSummary">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>
-            <span class="english">Conversation Summary</span>
-            <span class="hebrew">סיכום שיחה</span>
-          </h2>
-          <button class="close-button" (click)="closeSummary()">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="time-block" *ngFor="let block of correctionBlocks">
-            <div class="timestamp">{{block.timestamp}}</div>
-
-            <div class="correction-container" *ngFor="let correction of block.corrections">
-              <div class="error-row">
-                <span class="error-icon">✕</span>
-                <span class="correction-text">{{correction.wrong}}</span>
-              </div>
-              <div class="success-row">
-                <span class="success-icon">✓</span>
-                <span class="correction-text">{{correction.right}}</span>
-              </div>
-
-              <div class="explanations-list" *ngIf="correction.explanations?.length">
-                <div class="explanation-row" *ngFor="let explanation of correction.explanations">
-                  <span class="info-icon">ℹ️</span>
-                  <span class="explanation-text">{{explanation}}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </section>
 </div>

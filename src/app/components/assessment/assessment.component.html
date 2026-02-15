@@ -1,0 +1,32 @@
+<section class="assessment-section">
+  <h1>English Learning Platform</h1>
+
+  <div class="assessment-title">
+    <div class="english">How comfortable are you with English in these areas?</div>
+    <div class="hebrew">עד כמה אתה מרגיש בנוח עם אנגלית בתחומים הבאים?</div>
+  </div>
+
+  <div class="skills-list">
+    <div class="skill-item" *ngFor="let skill of skillsToAssess; trackBy: trackBySkillKey">
+      <div class="skill-title">
+        <span class="english">{{skill.nameEn}}</span>
+        <span class="hebrew">{{skill.nameHe}}</span>
+      </div>
+
+      <div class="level-selection">
+        <button *ngFor="let level of levels; trackBy: trackByLevelValue"
+          class="level-btn"
+          [class.selected]="skill.selectedLevel === level.value"
+          (click)="selectLevel(skill, level.value)">
+          <span class="level-name-en">{{level.nameEn}}</span>
+          <span class="level-name-he">{{level.nameHe}}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <button class="complete-btn" [disabled]="!areAllSkillsAssessed()" (click)="onComplete()">
+    <span class="english">Continue</span>
+    <span class="hebrew">המשך</span>
+  </button>
+</section>

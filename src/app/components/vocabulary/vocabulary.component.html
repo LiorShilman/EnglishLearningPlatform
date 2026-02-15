@@ -1,7 +1,7 @@
 <div class="vocabulary-container">
   <!-- Navigation -->
   <nav class="nav-tabs">
-    <button *ngFor="let view of viewTypes" [class.active]="activeView === view" (click)="switchView(view)">
+    <button *ngFor="let view of viewTypes; trackBy: trackByView" [class.active]="activeView === view" (click)="switchView(view)">
       {{ view | titlecase }}
     </button>
   </nav>
@@ -14,14 +14,14 @@
 
       <select [(ngModel)]="filterCategory">
         <option [ngValue]="null">All Categories</option>
-        <option *ngFor="let cat of categories" [value]="cat">
+        <option *ngFor="let cat of categories; trackBy: trackByCategory" [value]="cat">
           {{ cat | titlecase }}
         </option>
       </select>
 
       <select [(ngModel)]="filterLevel">
         <option [ngValue]="null">All Levels</option>
-        <option *ngFor="let level of levels" [value]="level">
+        <option *ngFor="let level of levels; trackBy: trackByLevel" [value]="level">
           Level {{ level }}
         </option>
       </select>
@@ -33,7 +33,7 @@
 
     <div class="cards-grid-container">
       <div class="cards-grid">
-        <div *ngFor="let card of applyFilters()" class="vocab-card">
+        <div *ngFor="let card of applyFilters(); trackBy: trackByCardId" class="vocab-card">
           <div class="card-header">
             <span class="level">Level {{ card.level }}</span>
             <span class="category">{{ card.category | titlecase }}</span>
@@ -48,14 +48,14 @@
             </div>
 
             <div class="examples" *ngIf="card.examples?.length">
-              <div *ngFor="let ex of card.examples" class="example">
+              <div *ngFor="let ex of card.examples; trackBy: trackByIndex" class="example">
                 <div class="english">{{ ex.english }}</div>
                 <div class="hebrew">{{ ex.hebrew }}</div>
               </div>
             </div>
 
             <div class="tags" *ngIf="card.tags?.length">
-              <span *ngFor="let tag of card.tags" class="tag">
+              <span *ngFor="let tag of card.tags; trackBy: trackByIndex" class="tag">
                 {{ tag }}
               </span>
             </div>
@@ -151,7 +151,7 @@
       <!-- Categories Breakdown -->
       <div class="breakdown-section category-breakdown">
         <h3>Categories</h3>
-        <div class="breakdown-item" *ngFor="let cat of categories">
+        <div class="breakdown-item" *ngFor="let cat of categories; trackBy: trackByCategory">
           <span class="item-label">{{ cat | titlecase }}</span>
           <span class="item-value">{{ stats.categoryBreakdown[cat] || 0 }}</span>
         </div>
@@ -160,7 +160,7 @@
       <!-- Levels Breakdown -->
       <div class="breakdown-section level-breakdown">
         <h3>Levels</h3>
-        <div class="breakdown-item" *ngFor="let level of levels">
+        <div class="breakdown-item" *ngFor="let level of levels; trackBy: trackByLevel">
           <span class="item-label">Level {{ level }}</span>
           <span class="item-value">{{ stats.levelBreakdown[level] || 0 }}</span>
         </div>
@@ -189,7 +189,7 @@
       <div class="form-group">
         <label>Category</label>
         <select formControlName="category">
-          <option *ngFor="let cat of categories" [value]="cat">
+          <option *ngFor="let cat of categories; trackBy: trackByCategory" [value]="cat">
             {{ cat | titlecase }}
           </option>
         </select>
@@ -198,7 +198,7 @@
       <div class="form-group">
         <label>Level</label>
         <select formControlName="level">
-          <option *ngFor="let level of levels" [value]="level">
+          <option *ngFor="let level of levels; trackBy: trackByLevel" [value]="level">
             Level {{ level }}
           </option>
         </select>
@@ -213,7 +213,7 @@
         <h4>Examples</h4>
         <button type="button" (click)="addExample()">Add Example</button>
 
-        <div *ngFor="let example of examplesArray.controls; let i=index">
+        <div *ngFor="let example of examplesArray.controls; let i=index; trackBy: trackByIndex">
           <div [formGroupName]="i" class="example-form">
             <input formControlName="english" placeholder="English example">
             <input formControlName="hebrew" placeholder="Hebrew example">
@@ -239,7 +239,7 @@
     <!-- Cards -->
     <div class="suggested-cards">
       <ng-container *ngIf="suggestedCards$ | async as suggestedCards">
-        <div *ngFor="let card of suggestedCards" class="suggested-card">
+        <div *ngFor="let card of suggestedCards; trackBy: trackByIndex" class="suggested-card">
           <div class="card-content">
             <!-- Word Info -->
             <div class="word-info">
@@ -251,7 +251,7 @@
             <div class="examples" *ngIf="card.examples && card.examples.length > 0">
               <h5>Examples:</h5>
               <ul>
-                <li *ngFor="let example of card.examples">
+                <li *ngFor="let example of card.examples; trackBy: trackByIndex">
                   {{ example.english }} - {{ example.hebrew }}
                 </li>
               </ul>

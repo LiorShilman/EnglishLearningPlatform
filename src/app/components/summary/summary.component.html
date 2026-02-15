@@ -1,0 +1,49 @@
+<!-- Summary Button -->
+<button class="summary-button" (click)="openSummary()">
+  <span class="icon">📋</span>
+  <div class="button-text">
+    <span class="english">Summary</span>
+    <span class="hebrew">סיכום</span>
+  </div>
+</button>
+
+<!-- Summary Modal -->
+<div class="summary-modal" *ngIf="showSummary">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>
+        <span class="english">Conversation Summary</span>
+        <span class="hebrew">סיכום שיחה</span>
+      </h2>
+      <button class="close-button" (click)="onClose()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="time-block" *ngFor="let block of correctionBlocks; trackBy: trackByTimestamp">
+        <div class="timestamp">{{block.timestamp}}</div>
+
+        <div class="correction-container" *ngFor="let correction of block.corrections; trackBy: trackByCorrectionIndex">
+          <div class="error-row">
+            <span class="error-icon">✕</span>
+            <span class="correction-text">{{correction.wrong}}</span>
+          </div>
+          <div class="success-row">
+            <span class="success-icon">✓</span>
+            <span class="correction-text">{{correction.right}}</span>
+          </div>
+
+          <div class="explanations-list" *ngIf="correction.explanations?.length">
+            <div class="explanation-row" *ngFor="let explanation of correction.explanations; trackBy: trackByExplanationIndex">
+              <span class="info-icon">ℹ️</span>
+              <span class="explanation-text">{{explanation}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="no-corrections" *ngIf="correctionBlocks.length === 0">
+        <span class="english">No corrections found in current conversation.</span>
+        <span class="hebrew">לא נמצאו תיקונים בשיחה הנוכחית.</span>
+      </div>
+    </div>
+  </div>
+</div>
