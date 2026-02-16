@@ -4,8 +4,8 @@
 
 :root {
   // --- Typography ---
-  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-hebrew: 'Noto Sans Hebrew', 'Segoe UI', sans-serif;
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+  --font-hebrew: 'Noto Sans Hebrew', 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
 
   // --- Colors: Surfaces ---
   --bg-base: #0f1019;
@@ -293,10 +293,7 @@ body {
     font-size: 1.5rem;
     margin: 0 0 1rem;
     padding-bottom: 0.75rem;
-    background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-primary);
 
     &::after {
       content: '';

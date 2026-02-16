@@ -1,10 +1,6 @@
-<!-- Summary Button -->
+<!-- Summary Button (hidden, triggered via FAB) -->
 <button class="summary-button" (click)="openSummary()">
   <span class="icon">S</span>
-  <div class="button-text">
-    <span class="english">Summary</span>
-    <span class="hebrew">סיכום</span>
-  </div>
 </button>
 
 <!-- Summary Modal -->
@@ -15,34 +11,49 @@
         <span class="english">Conversation Summary</span>
         <span class="hebrew">סיכום שיחה</span>
       </h2>
-      <button class="close-button" (click)="onClose()">✕</button>
+      <button class="close-button" (click)="onClose()">x</button>
     </div>
+
+    <!-- Stats bar -->
+    <div class="summary-stats">
+      <div class="stat">
+        <span class="stat-value">{{messageCount}}</span>
+        <span class="stat-label">Messages</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{summaryBlocks.length}}</span>
+        <span class="stat-label">Tips</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{correctionCount}}</span>
+        <span class="stat-label">Corrections</span>
+      </div>
+    </div>
+
     <div class="modal-body">
-      <div class="time-block" *ngFor="let block of correctionBlocks; trackBy: trackByTimestamp">
-        <div class="timestamp">{{block.timestamp}}</div>
+      <div class="summary-block {{block.type}}" *ngFor="let block of summaryBlocks; trackBy: trackByIndex">
+        <div class="block-header">
+          <span class="block-type-badge {{block.type}}">{{getTypeIcon(block.type)}}</span>
+          <span class="block-title">{{block.title}}</span>
+          <span class="block-type-label">{{getTypeLabel(block.type)}}</span>
+        </div>
 
-        <div class="correction-container" *ngFor="let correction of block.corrections; trackBy: trackByCorrectionIndex">
-          <div class="error-row">
-            <span class="error-icon">✕</span>
-            <span class="correction-text">{{correction.wrong}}</span>
-          </div>
-          <div class="success-row">
-            <span class="success-icon">✓</span>
-            <span class="correction-text">{{correction.right}}</span>
-          </div>
+        <div class="block-body">
+          <div class="english" dir="ltr">{{block.english}}</div>
+          <div class="hebrew" dir="rtl" *ngIf="block.hebrew">{{block.hebrew}}</div>
+        </div>
 
-          <div class="explanations-list" *ngIf="correction.explanations?.length">
-            <div class="explanation-row" *ngFor="let explanation of correction.explanations; trackBy: trackByExplanationIndex">
-              <span class="info-icon">i</span>
-              <span class="explanation-text">{{explanation}}</span>
-            </div>
+        <div class="block-examples" *ngIf="block.examples?.length">
+          <div class="example" *ngFor="let ex of block.examples; trackBy: trackByIndex">
+            <div class="english" dir="ltr">{{ex.english}}</div>
+            <div class="hebrew" dir="rtl" *ngIf="ex.hebrew">{{ex.hebrew}}</div>
           </div>
         </div>
       </div>
 
-      <div class="no-corrections" *ngIf="correctionBlocks.length === 0">
-        <span class="english">No corrections found in current conversation.</span>
-        <span class="hebrew">לא נמצאו תיקונים בשיחה הנוכחית.</span>
+      <div class="no-content" *ngIf="summaryBlocks.length === 0">
+        <span class="english">No learning points found yet. Keep chatting!</span>
+        <span class="hebrew">עדיין לא נמצאו נקודות למידה. המשיכו לשוחח!</span>
       </div>
     </div>
   </div>

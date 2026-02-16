@@ -1,6 +1,14 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { EnhancedChatMessage, CorrectionBlock, ExplanationItem } from '../../shared/interfaces/english-learning.interfaces';
+import { EnhancedChatMessage, LearningBlock } from '../../shared/interfaces/english-learning.interfaces';
+
+interface SummaryBlock {
+  type: string;
+  title: string;
+  english: string;
+  hebrew: string;
+  examples: Array<{ english: string; hebrew: string }>;
+}
 
 @Component({
   selector: 'app-summary',
@@ -14,10 +22,12 @@ export class SummaryComponent {
   @Input() showSummary = false;
   @Output() closeSummary = new EventEmitter<void>();
 
-  correctionBlocks: CorrectionBlock[] = [];
+  summaryBlocks: SummaryBlock[] = [];
+  messageCount = 0;
+  correctionCount = 0;
 
   openSummary(): void {
-    this.buildCorrectionBlocks();
+    this.buildSummary();
     this.showSummary = true;
   }
 
@@ -26,58 +36,50 @@ export class SummaryComponent {
     this.closeSummary.emit();
   }
 
-  private buildCorrectionBlocks(): void {
+  private buildSummary(): void {
     const assistantMessages = this.chatMessages.filter(msg => msg.sender === 'assistant');
-    this.correctionBlocks = [];
+    this.messageCount = this.chatMessages.filter(msg => msg.sender === 'user').length;
+    this.summaryBlocks = [];
 
-    assistantMessages.forEach((message) => {
-      const englishContent = message.english;
-      const block: CorrectionBlock = {
-        timestamp: message.timestamp.toLocaleString(),
-        corrections: []
-      };
-
-      const changesMatch = englishContent.match(/Changes explained:\s*([\s\S]*?)(?=Let's continue|##|\n\n🎭|$)/i);
-      let explanations: string[] = [];
-
-      if (changesMatch?.[1]) {
-        explanations = changesMatch[1]
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0 && /^\d+\./.test(line))
-          .map(line => line.replace(/^\d+\.\s*/, '').trim());
-      }
-
-      const correctionParts = englishContent.split(/(?=• Original:)/);
-
-      correctionParts.forEach(part => {
-        const originalMatch = part.match(/• Original: ~~([^~]+)~~/);
-        const correctedMatch = part.match(/• Corrected: ["'`]([^"'`]+)["'`]/);
-
-        if (originalMatch?.[1] && correctedMatch?.[1]) {
-          block.corrections.push({
-            wrong: originalMatch[1].trim(),
-            right: correctedMatch[1].trim(),
-            explanations: explanations
+    assistantMessages.forEach(message => {
+      // Collect learning blocks from the parsed message
+      if (message.learningBlocks?.length) {
+        message.learningBlocks.forEach((block: LearningBlock) => {
+          this.summaryBlocks.push({
+            type: block.type,
+            title: block.title,
+            english: block.content.english,
+            hebrew: block.content.hebrew,
+            examples: block.examples || []
           });
-        }
-      });
-
-      if (block.corrections.length > 0) {
-        this.correctionBlocks.push(block);
+        });
       }
     });
+
+    this.correctionCount = this.summaryBlocks.filter(b => b.type === 'grammar' || b.type === 'warning').length;
   }
 
-  trackByTimestamp(_index: number, block: CorrectionBlock): string {
-    return block.timestamp;
+  getTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      grammar: 'Grammar',
+      usage: 'Usage',
+      warning: 'Warning',
+      practice: 'Practice'
+    };
+    return labels[type] || type;
   }
 
-  trackByCorrectionIndex(index: number): number {
-    return index;
+  getTypeIcon(type: string): string {
+    const icons: Record<string, string> = {
+      grammar: 'G',
+      usage: 'U',
+      warning: '!',
+      practice: 'P'
+    };
+    return icons[type] || '?';
   }
 
-  trackByExplanationIndex(index: number): number {
+  trackByIndex(index: number): number {
     return index;
   }
 }

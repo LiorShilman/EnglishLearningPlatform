@@ -106,20 +106,22 @@ export class VocabularyComponent implements OnInit, OnDestroy {
 
   }
 
-  async processSuggestedCards() {
-    for (const card of this.suggestedCards) {
+  async processSuggestedCards(cards: AutoVocabCard[]) {
+    for (const card of cards) {
       if (card.confidence > 0.8) {
         await this.vocabService.addSuggestedCard(card);
+        this.vocabService.rejectSuggestion(card);
       }
     }
+    this.loadStats();
   }
 
   async addSuggestedCard(card: AutoVocabCard): Promise<void> {
     try {
       await this.vocabService.addSuggestedCard(card);
-      this.vocabService.rejectSuggestion(card); // Remove from suggestions after adding
-      
-      // Check if there are any cards left
+      this.vocabService.rejectSuggestion(card);
+      this.loadStats();
+
       this.suggestedCards$.pipe(take(1)).subscribe(cards => {
         if (!cards || cards.length === 0) {
           this._showSuggestions.next(false);
@@ -158,12 +160,11 @@ export class VocabularyComponent implements OnInit, OnDestroy {
   }
 
   private initializeSuggestions() {
-    // הסרת ההמרה למערך רגיל
     this.vocabService.getSuggestedCards()
       .pipe(takeUntil(this.destroy$))
       .subscribe(cards => {
-        if (this.autoProcessEnabled) {
-          this.processSuggestedCards();
+        if (cards?.length > 0 && this.autoProcessEnabled) {
+          this.processSuggestedCards(cards);
         }
       });
   }

@@ -53,6 +53,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   isVocabularyVisible = true;
   showScrollButton = false;
   showSummary = false;
+  undoStack: ChatMessage[] | null = null;
   private scrollObserver: MutationObserver | null = null;
   private scrollListener: (() => void) | null = null;
   private retryIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -476,6 +477,50 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  isLastAssistantMessage(message: ChatMessage): boolean {
+    for (let i = this.chatMessages.length - 1; i >= 0; i--) {
+      if (this.chatMessages[i].sender === 'assistant') {
+        return this.chatMessages[i] === message;
+      }
+    }
+    return false;
+  }
+
+  async retryMessage(message: ChatMessage): Promise<void> {
+    if (this.isAssistantThinking || !message.english) return;
+
+    // Find the message index and remove everything from the next message onward
+    const idx = this.chatMessages.indexOf(message);
+    if (idx === -1) return;
+
+    this.chatMessages.splice(idx + 1);
+    this.userInput = message.english;
+    this.chatMessages.splice(idx, 1);
+    await this.sendMessage();
+  }
+
+  deleteLastResponse(): void {
+    if (this.isAssistantThinking || this.chatMessages.length === 0) return;
+
+    const lastIdx = this.chatMessages.length - 1;
+    if (this.chatMessages[lastIdx].sender !== 'assistant') return;
+
+    // Save for undo
+    this.undoStack = this.chatMessages.splice(lastIdx, 1);
+    this.saveCurrentSession();
+
+    // Auto-clear undo after 10 seconds
+    setTimeout(() => { this.undoStack = null; }, 10000);
+  }
+
+  undoDelete(): void {
+    if (!this.undoStack) return;
+    this.chatMessages.push(...this.undoStack);
+    this.undoStack = null;
+    this.saveCurrentSession();
+    setTimeout(() => this.scrollToBottom(), 50);
+  }
+
   // Helper Methods
   calculateAverageLevel(): number {
     const sum = Object.values(this.userLevel).reduce((acc, val) => acc + val, 0);
@@ -557,10 +602,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  async processVocabulary(context: ServiceContext): Promise<void> {
+  async processVocabulary(context: ServiceContext, fullScan = false): Promise<void> {
     try {
-      const recentMessages = this.chatMessages.slice(-3);
-      await this.vocabularyService.processConversation(recentMessages, context);
+      const messages = fullScan ? this.chatMessages.slice(-10) : this.chatMessages.slice(-3);
+      await this.vocabularyService.processConversation(messages, context);
     } catch (error) {
       console.error('Error processing vocabulary:', error);
     }
@@ -672,6 +717,18 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       this.scrollToBottom();
     }, 200);
+
+    // Process vocabulary from loaded conversation
+    const context: ServiceContext = {
+      userLevel: this.userLevel,
+      previousMessages: this.chatMessages,
+      conversationContext: {
+        isFirstMessage: false,
+        currentTopic: this.currentTopic,
+        lastProgressUpdate: this.lastProgressUpdate
+      }
+    };
+    this.processVocabulary(context, true);
   }
 
   private buildWelcomeMessage(level: UserLevel): EnhancedChatMessage {

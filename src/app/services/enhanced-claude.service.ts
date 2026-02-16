@@ -176,20 +176,43 @@ export class EnhancedClaudeService {
 
   private parseContent(content: string): { english: string; hebrew: string } {
     try {
-      const [englishPart = '', ...hebrewParts] = content.split('Hebrew:');
-      const hebrewPart = hebrewParts.join('Hebrew:');
+      // Try bracket-delimited format: English: [...] Hebrew: [...]
+      // Use greedy match for English so it finds the last ] before Hebrew:
+      const bracketMatch = content.match(
+        /English:\s*\[([\s\S]*)\]\s*Hebrew:\s*\[([\s\S]*)\]\s*$/
+      );
+      if (bracketMatch) {
+        return {
+          english: bracketMatch[1].trim(),
+          hebrew: bracketMatch[2].trim()
+        };
+      }
 
-      let english = englishPart.replace('English:', '').trim();
-      english = english.replace(/^\[|\]$/g, '').trim();
+      // Fallback: split on "Hebrew:" at the start of a line (not mid-sentence)
+      const hebrewSplitMatch = content.match(
+        /^([\s\S]*?)(?:^|\n)\s*Hebrew:\s*([\s\S]*)$/m
+      );
+      if (hebrewSplitMatch) {
+        let english = hebrewSplitMatch[1].replace(/^\s*English:\s*/i, '').trim();
+        let hebrew = hebrewSplitMatch[2].trim();
+        english = this.stripBrackets(english);
+        hebrew = this.stripBrackets(hebrew);
+        return { english, hebrew };
+      }
 
-      let hebrew = hebrewPart.trim();
-      hebrew = hebrew.replace(/^\[|\]$/g, '').trim();
-
-      return { english, hebrew };
+      // Last resort: treat entire content as English
+      let english = content.replace(/^\s*English:\s*/i, '').trim();
+      english = this.stripBrackets(english);
+      return { english, hebrew: '' };
     } catch (error) {
       console.error('Error parsing content:', error);
       return { english: '', hebrew: '' };
     }
+  }
+
+  private stripBrackets(text: string): string {
+    // Remove leading [ and trailing ] (with possible whitespace/newlines around them)
+    return text.replace(/^\s*\[/, '').replace(/\]\s*$/, '').trim();
   }
 
   private parseLearningBlock(block: string): LearningBlock | null {

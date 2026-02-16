@@ -95,8 +95,8 @@
 
               <div class="message-content">
                 <div class="message-text">
-                  <div class="english" [innerHTML]="(message.english || '') | markdown"></div>
-                  <div class="hebrew" [innerHTML]="(message.hebrew || '') | markdown"></div>
+                  <div class="english" dir="ltr" [innerHTML]="(message.english || '') | markdown"></div>
+                  <div class="hebrew" dir="rtl" [innerHTML]="(message.hebrew || '') | markdown"></div>
                 </div>
 
                 <div class="learning-blocks" *ngIf="message.learningBlocks?.length">
@@ -107,14 +107,14 @@
                     </div>
 
                     <div class="block-content">
-                      <div class="english" [innerHTML]="block.content.english | markdown"></div>
-                      <div class="hebrew" [innerHTML]="block.content.hebrew | markdown"></div>
+                      <div class="english" dir="ltr" [innerHTML]="block.content.english | markdown"></div>
+                      <div class="hebrew" dir="rtl" [innerHTML]="block.content.hebrew | markdown"></div>
                     </div>
 
                     <div class="examples" *ngIf="block.examples?.length">
                       <div class="example" *ngFor="let example of block.examples; trackBy: trackByExampleIndex">
-                        <div class="english" [innerHTML]="example.english | markdown"></div>
-                        <div class="hebrew" [innerHTML]="example.hebrew | markdown"></div>
+                        <div class="english" dir="ltr" [innerHTML]="example.english | markdown"></div>
+                        <div class="hebrew" dir="rtl" [innerHTML]="example.hebrew | markdown"></div>
                       </div>
                     </div>
                   </div>
@@ -126,6 +126,26 @@
                 <span>U</span>
               </div>
             </div>
+
+            <!-- Message actions -->
+            <div class="message-actions" *ngIf="message.sender === 'user'">
+              <button class="action-btn retry-btn" (click)="retryMessage(message)" title="Retry this question"
+                [disabled]="isAssistantThinking">
+                <span class="action-icon">&#x21BB;</span>
+              </button>
+            </div>
+            <div class="message-actions" *ngIf="message.sender === 'assistant' && isLastAssistantMessage(message)">
+              <button class="action-btn delete-btn" (click)="deleteLastResponse()" title="Delete this response"
+                [disabled]="isAssistantThinking">
+                <span class="action-icon">&#x2715;</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Undo Bar -->
+          <div class="undo-bar" *ngIf="undoStack">
+            <span>Response deleted</span>
+            <button (click)="undoDelete()">Undo</button>
           </div>
 
           <!-- Thinking Indicator -->
