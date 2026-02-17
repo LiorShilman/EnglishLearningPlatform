@@ -360,6 +360,11 @@
     transition: all 0.2s ease;
     font-size: 0.85rem;
 
+    .action-svg {
+      width: 15px;
+      height: 15px;
+    }
+
     &:hover {
       background: var(--bg-elevated);
       color: var(--text-primary);
@@ -580,14 +585,15 @@
     margin-bottom: 0.5rem;
 
     .block-icon {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 50%;
-      font-size: 0.9rem;
-      background: rgba(123, 140, 222, 0.12);
+      border-radius: 10px;
+      background: rgba(123, 140, 222, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: transform 0.3s var(--ease-spring);
     }
 
     .block-title {
@@ -599,19 +605,23 @@
   }
 
   &.grammar .block-header .block-icon {
-    background: rgba(112, 193, 179, 0.15);
+    background: linear-gradient(135deg, rgba(112, 193, 179, 0.15), rgba(112, 193, 179, 0.05));
+    box-shadow: 0 2px 8px rgba(112, 193, 179, 0.12);
   }
 
   &.usage .block-header .block-icon {
-    background: rgba(123, 140, 222, 0.15);
+    background: linear-gradient(135deg, rgba(123, 140, 222, 0.15), rgba(123, 140, 222, 0.05));
+    box-shadow: 0 2px 8px rgba(123, 140, 222, 0.12);
   }
 
   &.warning .block-header .block-icon {
-    background: rgba(255, 185, 151, 0.15);
+    background: linear-gradient(135deg, rgba(255, 185, 151, 0.15), rgba(255, 185, 151, 0.05));
+    box-shadow: 0 2px 8px rgba(255, 185, 151, 0.12);
   }
 
   &.practice .block-header .block-icon {
-    background: rgba(182, 164, 206, 0.15);
+    background: linear-gradient(135deg, rgba(182, 164, 206, 0.15), rgba(182, 164, 206, 0.05));
+    box-shadow: 0 2px 8px rgba(182, 164, 206, 0.12);
   }
 
   .examples {
@@ -714,6 +724,11 @@
   .icon {
     font-size: 1.2rem;
     transition: transform var(--duration-fast) var(--ease-spring);
+  }
+
+  .mic-svg {
+    width: 22px;
+    height: 22px;
   }
 
   &:hover {
@@ -901,16 +916,9 @@
     justify-content: center;
     transition: all var(--duration-normal) var(--ease-spring);
 
-    .fab-icon {
-      font-size: 1.1rem;
-      font-weight: 600;
-      font-family: var(--font-primary);
-      line-height: 1;
-    }
-
-    .scroll-icon {
-      font-size: 1.3rem;
-      font-weight: 400;
+    .fab-svg {
+      width: 20px;
+      height: 20px;
     }
 
     &:hover {
@@ -1394,7 +1402,7 @@
       width: 36px;
       height: 36px;
 
-      .fab-icon { font-size: 0.95rem; }
+      .fab-svg { width: 18px; height: 18px; }
     }
   }
 
@@ -1544,7 +1552,7 @@
       width: 32px;
       height: 32px;
 
-      .fab-icon { font-size: 0.85rem; }
+      .fab-svg { width: 16px; height: 16px; }
     }
   }
 

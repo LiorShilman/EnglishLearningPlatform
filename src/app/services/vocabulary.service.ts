@@ -59,16 +59,20 @@ export class VocabularyService {
 
   async processConversation(messages: ChatMessage[], context: ServiceContext): Promise<void> {
     try {
+      console.log('[DEBUG] VocabService.processConversation called, messages:', messages.length);
       const vocabItems = await this.vocabClaudeService.analyzeConversation(messages, context);
+      console.log('[DEBUG] VocabService: analyzeConversation returned', vocabItems.length, 'items');
       const filteredItems = this.filterExistingVocab(vocabItems);
+      console.log('[DEBUG] VocabService: after filtering:', filteredItems.length, 'items');
 
       if (filteredItems.length > 0) {
-        // Update the BehaviorSubject with new items
-        console.log('New vocab items:', filteredItems);
+        console.log('[DEBUG] VocabService: pushing new suggested cards:', filteredItems);
         this._suggestedCards.next(filteredItems);
+      } else {
+        console.log('[DEBUG] VocabService: no items to push (all filtered or empty)');
       }
     } catch (error) {
-      console.error('Error processing conversation:', error);
+      console.error('[DEBUG] VocabService: Error processing conversation:', error);
     }
   }
 

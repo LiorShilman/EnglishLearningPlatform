@@ -153,61 +153,91 @@ export class EnhancedClaudeService {
     }
 
     const content = response.content[0].text;
-    const { english, hebrew } = this.parseContent(content);
+    console.log('[DEBUG] Raw Claude response length:', content.length);
+    console.log('[DEBUG] Raw Claude response (first 500 chars):', content.substring(0, 500));
 
-    const message: EnhancedChatMessage = {
+    const { english, hebrew } = this.parseContent(content);
+    console.log('[DEBUG] Parsed english length:', english.length, 'hebrew length:', hebrew.length);
+
+    let learningBlocks = this.parseStructuredBlocks(content);
+    console.log('[DEBUG] Structured blocks found:', learningBlocks.length);
+
+    // Fallback: try to extract blocks from English content using markdown patterns
+    if (learningBlocks.length === 0) {
+      learningBlocks = this.extractBlocksFromMarkdown(english);
+      console.log('[DEBUG] Markdown fallback blocks found:', learningBlocks.length);
+    }
+
+    return {
       sender: 'assistant',
       timestamp: new Date(),
       english,
       hebrew,
-      learningBlocks: []
+      learningBlocks
     };
-
-    const blocks: string[] = content.match(/[📝💡⚠️🔄][^\n]+/g) || [];
-    blocks.forEach((block: string) => {
-      const parsedBlock = this.parseLearningBlock(block);
-      if (parsedBlock) {
-        message.learningBlocks?.push(parsedBlock);
-      }
-    });
-
-    return message;
   }
 
   private parseContent(content: string): { english: string; hebrew: string } {
     try {
+      // Strip BLOCKS section aggressively - multiple patterns to handle AI variations
+      let cleaned = content;
+
+      // Pattern 1: BLOCKS: [...] with closing bracket
+      cleaned = cleaned.replace(/\n?\s*BLOCKS:\s*\[[\s\S]*\]\s*$/, '');
+      // Pattern 2: BLOCKS: [ followed by content until end (no closing bracket)
+      cleaned = cleaned.replace(/\n?\s*BLOCKS:\s*\[[\s\S]*$/, '');
+      // Pattern 3: Standalone [GRAMMAR], [USAGE], etc. sections at the end
+      cleaned = cleaned.replace(/\n?\s*\[(GRAMMAR|USAGE|WARNING|PRACTICE)\][\s\S]*$/i, '');
+
+      cleaned = cleaned.trim();
+      console.log('[DEBUG] parseContent: cleaned length:', cleaned.length, 'original:', content.length);
+
       // Try bracket-delimited format: English: [...] Hebrew: [...]
-      // Use greedy match for English so it finds the last ] before Hebrew:
-      const bracketMatch = content.match(
+      // Use greedy for English (to find last ] before Hebrew:) and greedy for Hebrew
+      const bracketMatch = cleaned.match(
         /English:\s*\[([\s\S]*)\]\s*Hebrew:\s*\[([\s\S]*)\]\s*$/
       );
       if (bracketMatch) {
+        console.log('[DEBUG] parseContent: bracketMatch succeeded');
         return {
-          english: bracketMatch[1].trim(),
-          hebrew: bracketMatch[2].trim()
+          english: this.cleanDisplayText(bracketMatch[1].trim()),
+          hebrew: this.cleanDisplayText(bracketMatch[2].trim())
         };
       }
 
-      // Fallback: split on "Hebrew:" at the start of a line (not mid-sentence)
-      const hebrewSplitMatch = content.match(
+      // Fallback: split on "Hebrew:" at the start of a line
+      const hebrewSplitMatch = cleaned.match(
         /^([\s\S]*?)(?:^|\n)\s*Hebrew:\s*([\s\S]*)$/m
       );
       if (hebrewSplitMatch) {
+        console.log('[DEBUG] parseContent: hebrewSplit succeeded');
         let english = hebrewSplitMatch[1].replace(/^\s*English:\s*/i, '').trim();
         let hebrew = hebrewSplitMatch[2].trim();
         english = this.stripBrackets(english);
         hebrew = this.stripBrackets(hebrew);
-        return { english, hebrew };
+        return {
+          english: this.cleanDisplayText(english),
+          hebrew: this.cleanDisplayText(hebrew)
+        };
       }
 
       // Last resort: treat entire content as English
-      let english = content.replace(/^\s*English:\s*/i, '').trim();
+      let english = cleaned.replace(/^\s*English:\s*/i, '').trim();
       english = this.stripBrackets(english);
-      return { english, hebrew: '' };
+      return { english: this.cleanDisplayText(english), hebrew: '' };
     } catch (error) {
       console.error('Error parsing content:', error);
       return { english: '', hebrew: '' };
     }
+  }
+
+  // Remove any remaining BLOCKS artifacts from display text
+  private cleanDisplayText(text: string): string {
+    return text
+      .replace(/\n?\s*BLOCKS:\s*\[[\s\S]*/g, '')
+      .replace(/\n?\s*\[(GRAMMAR|USAGE|WARNING|PRACTICE|VOCABULARY)\][^\n]*/gi, '')
+      .replace(/\n?\s*(?:EN|HE|EX):\s*[^\n]*/g, '')
+      .trim();
   }
 
   private stripBrackets(text: string): string {
@@ -215,67 +245,176 @@ export class EnhancedClaudeService {
     return text.replace(/^\s*\[/, '').replace(/\]\s*$/, '').trim();
   }
 
-  private parseLearningBlock(block: string): LearningBlock | null {
+  private parseStructuredBlocks(content: string): LearningBlock[] {
     try {
-      const lines = block.trim().split('\n').filter(line => line.trim());
-      if (lines.length < 2) return null;
+      // Try multiple patterns to find BLOCKS section
+      let blocksContent = '';
 
-      const type = this.getLearningBlockType(lines[0]);
-      const title = lines[0].replace(/^[📝💡⚠️🔄]/, '').trim();
+      // Pattern 1: BLOCKS: [...content...]
+      const blocksMatch1 = content.match(/BLOCKS:\s*\[([\s\S]*)\]\s*$/);
+      if (blocksMatch1) {
+        blocksContent = blocksMatch1[1].trim();
+      }
 
-      let english = '';
-      let hebrew = '';
-      const examples: Array<{ english: string; hebrew: string }> = [];
-
-      let isExample = false;
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        if (line.toLowerCase().includes('example:') || line.startsWith('*')) {
-          isExample = true;
-          const exampleText = line.replace(/^(Example:|•|\*)/i, '').trim();
-          const [eng, heb] = this.separateLanguages(exampleText);
-          examples.push({ english: eng, hebrew: heb || '' });
-        } else if (/[\u0590-\u05FF]/.test(line)) {
-          if (isExample && examples.length > 0) {
-            examples[examples.length - 1].hebrew = line;
-          } else {
-            hebrew = line;
-          }
-        } else {
-          if (!isExample && !english) {
-            english = line.replace(/•/, '').trim();
-          }
+      // Pattern 2: BLOCKS: [ then content (AI might not close bracket)
+      if (!blocksContent) {
+        const blocksMatch2 = content.match(/BLOCKS:\s*\[([\s\S]*)$/);
+        if (blocksMatch2) {
+          blocksContent = blocksMatch2[1].trim();
         }
       }
 
-      return {
-        type,
-        title,
-        content: { english: english || title, hebrew: hebrew || '' },
-        ...(examples.length > 0 && { examples })
-      };
+      // Pattern 3: Just find [GRAMMAR/USAGE/WARNING/PRACTICE] blocks anywhere after Hebrew section
+      if (!blocksContent) {
+        const hebrewEnd = content.lastIndexOf(']');
+        const afterHebrew = content.substring(hebrewEnd + 1);
+        if (/\[(GRAMMAR|USAGE|WARNING|PRACTICE)\]/i.test(afterHebrew)) {
+          blocksContent = afterHebrew;
+        }
+      }
+
+      console.log('[DEBUG] parseStructuredBlocks: blocksContent length:', blocksContent.length);
+      if (!blocksContent || blocksContent.toLowerCase() === 'none') return [];
+
+      // Split on block type markers: [GRAMMAR], [USAGE], [WARNING], [PRACTICE]
+      const blocks: LearningBlock[] = [];
+      const parts = blocksContent.split(/(?=\[(?:GRAMMAR|USAGE|WARNING|PRACTICE|VOCABULARY)\])/i);
+
+      for (const part of parts) {
+        const headerMatch = part.match(/^\[(GRAMMAR|USAGE|WARNING|PRACTICE|VOCABULARY)\]\s*(.+)/i);
+        if (!headerMatch) continue;
+
+        const rawType = headerMatch[1].toLowerCase();
+        const type = (rawType === 'vocabulary' ? 'usage' : rawType) as LearningBlock['type'];
+        const title = headerMatch[2].trim();
+        const lines = part.split('\n').slice(1); // skip the header line
+
+        let english = '';
+        let hebrew = '';
+        const examples: Array<{ english: string; hebrew: string }> = [];
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('EN:')) {
+            english = trimmed.substring(3).trim();
+          } else if (trimmed.startsWith('HE:')) {
+            hebrew = trimmed.substring(3).trim();
+          } else if (trimmed.startsWith('EX:')) {
+            const exText = trimmed.substring(3).trim();
+            const pipeIdx = exText.indexOf('|');
+            if (pipeIdx !== -1) {
+              examples.push({
+                english: exText.substring(0, pipeIdx).trim(),
+                hebrew: exText.substring(pipeIdx + 1).trim()
+              });
+            } else {
+              examples.push({ english: exText, hebrew: '' });
+            }
+          }
+        }
+
+        if (english || title) {
+          blocks.push({
+            type,
+            title,
+            content: { english: english || title, hebrew: hebrew || '' },
+            ...(examples.length > 0 && { examples })
+          });
+        }
+      }
+
+      return blocks;
     } catch (error) {
-      console.error('Error parsing learning block:', error);
-      return null;
+      console.error('Error parsing structured blocks:', error);
+      return [];
     }
   }
 
-  private getLearningBlockType(line: string): LearningBlock['type'] {
-    if (line.startsWith('📝')) return 'grammar';
-    if (line.startsWith('💡')) return 'usage';
-    if (line.startsWith('⚠️')) return 'warning';
-    if (line.startsWith('🔄')) return 'practice';
-    return 'grammar';
-  }
+  // Fallback: extract learning blocks from markdown content when BLOCKS section is missing
+  private extractBlocksFromMarkdown(english: string): LearningBlock[] {
+    const blocks: LearningBlock[] = [];
+    if (!english) return blocks;
 
-  private separateLanguages(text: string): [string, string] {
-    const parts = text.split(/(?=[\u0590-\u05FF])/);
-    return [
-      parts[0]?.trim() || '',
-      parts.slice(1).join('')?.trim() || ''
-    ];
+    // Pattern 1: Look for numbered sections with grammar/correction keywords
+    const correctionMatch = english.match(/(?:did you mean|corrected|correction|here'?s the breakdown)/i);
+    if (correctionMatch) {
+      // Extract corrections as a grammar block
+      const correctionSection = english.substring(correctionMatch.index || 0);
+      blocks.push({
+        type: 'grammar',
+        title: 'Correction',
+        content: { english: correctionSection.substring(0, 300), hebrew: '' },
+      });
+    }
+
+    // Pattern 2: Look for sections with ## headers that indicate learning content
+    const sectionRegex = /#{1,3}\s*\d*\.?\s*(Grammar|Vocabulary|Usage|Warning|Practice|Tip|Note|Important|Correction|Verb|Tense|Capital|Time|Expression)[^\n]*/gi;
+    let match;
+    const foundSections: { type: LearningBlock['type']; title: string; startIdx: number }[] = [];
+
+    while ((match = sectionRegex.exec(english)) !== null) {
+      const keyword = match[1].toLowerCase();
+      let type: LearningBlock['type'] = 'grammar';
+      if (keyword.includes('usage') || keyword.includes('vocabulary') || keyword.includes('tip')) type = 'usage';
+      else if (keyword.includes('warning') || keyword.includes('important') || keyword.includes('note')) type = 'warning';
+      else if (keyword.includes('practice')) type = 'practice';
+
+      foundSections.push({
+        type,
+        title: match[0].replace(/^#+\s*\d*\.?\s*/, '').trim(),
+        startIdx: match.index
+      });
+    }
+
+    // Extract content for each section
+    for (let i = 0; i < foundSections.length; i++) {
+      const section = foundSections[i];
+      const endIdx = i < foundSections.length - 1
+        ? foundSections[i + 1].startIdx
+        : Math.min(section.startIdx + 500, english.length);
+
+      const sectionContent = english.substring(section.startIdx, endIdx).trim();
+
+      // Skip if we already have a block with this title
+      if (blocks.some(b => b.title === section.title)) continue;
+
+      blocks.push({
+        type: section.type,
+        title: section.title,
+        content: { english: sectionContent, hebrew: '' },
+      });
+    }
+
+    // Pattern 3: If no sections found but content has correction indicators
+    if (blocks.length === 0) {
+      const hasCorrection = /~~[^~]+~~|strikethrough|original.*corrected|incorrect.*correct/i.test(english);
+      const hasTip = /remember|important|note that|keep in mind|tip:/i.test(english);
+      const hasPractice = /try|practice|exercise|your turn|can you/i.test(english);
+
+      if (hasCorrection) {
+        blocks.push({
+          type: 'grammar',
+          title: 'Grammar Correction',
+          content: { english: 'Corrections provided in the response above', hebrew: 'תיקונים מופיעים בתשובה למעלה' },
+        });
+      }
+      if (hasTip) {
+        blocks.push({
+          type: 'usage',
+          title: 'Learning Tip',
+          content: { english: 'Tips provided in the response above', hebrew: 'טיפים מופיעים בתשובה למעלה' },
+        });
+      }
+      if (hasPractice) {
+        blocks.push({
+          type: 'practice',
+          title: 'Practice',
+          content: { english: 'Practice exercises in the response above', hebrew: 'תרגול מופיע בתשובה למעלה' },
+        });
+      }
+    }
+
+    return blocks;
   }
 
   // Error handling
@@ -346,37 +485,45 @@ Real-Time Correction System:
   2. Present corrections in this format:
   Did you mean to say: "[corrected sentence]"?
   Here's the breakdown:
-    • Original: ~~[user's text]~~
-    • Corrected: [corrected version]
-    • Changes explained:
+    - Original: ~~[user's text]~~
+    - Corrected: **[corrected version]**
+    - Changes explained:
 
   [specific correction 1]
   [specific correction 2]
   etc.
+
+  IMPORTANT STYLE RULES:
+  - Do NOT use emoji icons like ✅, ❌, 📝, 💡, ⚠️, 🔄, 🎯, 🌍, 📋 etc.
+  - Instead use clean markdown: bullet points (-), numbered lists (1.), bold (**text**), italic (*text*), headers (##)
+  - For correct examples use: **Correct:** before the sentence
+  - For incorrect examples use: ~~Incorrect:~~ before the sentence
+  - Use horizontal rules (---) to separate sections
+  - Keep the tone professional and clean without decorative symbols
 
 *********************************************************
 
 Extended Learning Features:
 
 1. Conversation Templates (match to user levels):
-🎯 Professional Practice (Level ${userLevel.speaking})
-• Job interviews
-• Business meetings
-• Customer service
-• Presentations
+**Professional Practice** (Level ${userLevel.speaking})
+- Job interviews
+- Business meetings
+- Customer service
+- Presentations
 
-🎯 Daily Life Practice (Level ${userLevel.vocabulary})
-• Shopping interactions
-• Restaurant scenarios
-• Travel situations
-• Social conversations
+**Daily Life Practice** (Level ${userLevel.vocabulary})
+- Shopping interactions
+- Restaurant scenarios
+- Travel situations
+- Social conversations
 
 2. Cultural Integration:
-🌍 Cultural Elements
-• Idioms matching vocabulary level
-• Cultural context for conversations
-• Social norms and customs
-• Cross-cultural comparisons
+**Cultural Elements**
+- Idioms matching vocabulary level
+- Cultural context for conversations
+- Social norms and customs
+- Cross-cultural comparisons
 
 Key Principles for Each Skill Level:
 
@@ -403,24 +550,25 @@ ${this.getSpeakingGuidelines(userLevel.speaking)}
 VERY IMPORTANT - Response Format:
 
 English: [
-Detailed response in English using enhanced markdown:
+Detailed response in English using clean, professional markdown:
 
-# For Main Topics
-## For Subtopics
-### For Specific Points
+## For Main Sections
+### For Subsections
 
 - Bullet points for lists
-1. Numbered steps
-> Quotes for emphasis or examples
+1. Numbered steps for sequences
+> Blockquotes for important notes or examples
 
-\`code\` for corrections
-**bold** for emphasis and question to the user.
-*italic* for new terms
-~~strikethrough~~ for mistakes
-__underline__ for grammar patterns
+**bold** for emphasis, key terms, and correct forms
+*italic* for new vocabulary or grammar patterns
+~~strikethrough~~ for incorrect forms
+\`code\` for specific word corrections
 
 ---
 For section breaks
+
+STYLE: Do NOT use any emoji or unicode symbols. Use only plain text with markdown formatting.
+The formatting itself should convey meaning — bold for correct, strikethrough for incorrect, headers for structure.
 ]
 
 Hebrew: [
@@ -435,10 +583,10 @@ Hebrew: [
 
 Enhanced Learning Blocks:
 
-1. Grammar (📝) - Adjust to Level ${userLevel.grammar}
-2. Usage (💡) - Adjust to Level ${userLevel.vocabulary}
-3. Warning (⚠️) - Adapt to user's levels
-4. Practice (🔄) - Match to skill levels
+1. Grammar — Adjust to Level ${userLevel.grammar}
+2. Usage — Adjust to Level ${userLevel.vocabulary}
+3. Warning — Adapt to user's levels
+4. Practice — Match to skill levels
 
 Specific Level Adaptations:
 
@@ -457,12 +605,12 @@ ${this.getSpeakingLevelPrompt(userLevel.speaking)}
 Remember to:
 1. Always maintain an encouraging, supportive tone
 2. Adapt complexity specifically to each skill level
-3. Use visual formatting to enhance readability
+3. Use clean markdown formatting — headers, bold, italic, lists, horizontal rules
 4. Celebrate progress in each skill area
 5. Address errors based on skill-specific levels
 6. Keep Hebrew summaries focused and concise
 7. End each response with level-appropriate questions
-8. Use markdown formatting consistently
+8. NEVER use emoji icons (no ✅❌📝💡⚠️🔄🎯🌍📋 etc.) — use markdown formatting instead
 
 ======================================================================
 CRITICAL FORMAT REQUIREMENT:
@@ -491,19 +639,40 @@ CRITICAL FORMAT REQUIREMENT:
 You MUST format ALL responses using EXACTLY this structure:
 
 English: [
-Your complete English response here, including:
-- All explanations
-- All corrections
-- All suggestions
-- All practice exercises
-Use markdown formatting as specified.
+Your complete English response here using clean markdown.
+Do NOT include learning blocks here — put them in the BLOCKS section below.
 ]
 
 Hebrew: [
-התגובה שלך בעברית כאן, כולל:
-• נקודות עיקריות
-• תיקונים חשובים
-• הצעות לתרגול
+תמצית בעברית — נקודות עיקריות בלבד
+]
+
+BLOCKS: [
+If you have grammar corrections, usage tips, warnings, or practice suggestions, list them here.
+Each block must follow this exact format (one per learning point):
+
+[GRAMMAR] Title of the point
+EN: English explanation
+HE: Hebrew explanation
+EX: Example sentence in English | Hebrew translation
+
+[USAGE] Title
+EN: English explanation
+HE: Hebrew explanation
+EX: Example | תרגום
+
+[WARNING] Title
+EN: English explanation
+HE: Hebrew explanation
+
+[PRACTICE] Title
+EN: English explanation or exercise
+HE: Hebrew explanation
+EX: Example | תרגום
+
+Valid block types: GRAMMAR, USAGE, WARNING, PRACTICE
+Each block MUST have EN and HE lines. EX lines are optional (can have multiple).
+If there are no learning points, write: BLOCKS: [none]
 ]
 
 Current User Levels:
@@ -516,9 +685,9 @@ Error Analysis:
 ${errorAnalysis}
 
 IMPORTANT REMINDERS:
-1. Always use the exact format specified above
-2. Include both English and Hebrew sections
-3. Use markdown formatting consistently
+1. Always use the exact format: English: [...] Hebrew: [...] BLOCKS: [...]
+2. Never use emoji icons — use only clean markdown
+3. Put ALL grammar/usage/warning/practice content inside BLOCKS, not in the English section
 4. Keep Hebrew responses focused on key points
 5. Provide appropriate feedback for user's level`;
   }

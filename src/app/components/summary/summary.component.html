@@ -33,7 +33,7 @@
     <div class="modal-body">
       <div class="summary-block {{block.type}}" *ngFor="let block of summaryBlocks; trackBy: trackByIndex">
         <div class="block-header">
-          <span class="block-type-badge {{block.type}}">{{getTypeIcon(block.type)}}</span>
+          <span class="block-type-badge {{block.type}}" [innerHTML]="getTypeIcon(block.type)"></span>
           <span class="block-title">{{block.title}}</span>
           <span class="block-type-label">{{getTypeLabel(block.type)}}</span>
         </div>

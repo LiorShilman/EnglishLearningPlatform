@@ -23,6 +23,7 @@ import { ConversationStorageService } from './services/conversation-storage.serv
 import { SessionMetadata } from './shared/interfaces/conversation-session.interfaces';
 import { GamificationService } from './services/gamification.service';
 import { Subscription } from 'rxjs';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-root',
@@ -103,7 +104,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     private conversationStorageService: ConversationStorageService,
     private gamificationService: GamificationService,
     private ngZone: NgZone,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private sanitizer: DomSanitizer
   ) {
     if (annyang) {
       this.annyang = annyang;
@@ -592,22 +594,48 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     return colors[name] || '#7B8CDE';
   }
 
-  getBlockIcon(type: string): string {
-    switch (type) {
-      case 'grammar': return '📝';
-      case 'usage': return '💡';
-      case 'warning': return '⚠️';
-      case 'practice': return '🔄';
-      default: return '📌';
-    }
+  private blockIconCache: Record<string, SafeHtml> = {};
+
+  getBlockIcon(type: string): SafeHtml {
+    if (this.blockIconCache[type]) return this.blockIconCache[type];
+    const svgs: Record<string, string> = {
+      grammar: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" fill="rgba(112,193,179,0.15)" stroke="rgba(112,193,179,0.4)" stroke-width="1"/>
+        <path d="M9 12h6M9 15h4" stroke="#70C1B3" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="8" cy="9" r="1.5" fill="#70C1B3"/>
+        <path d="M11 8.5l1.5 2 3-3" stroke="#70C1B3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>`,
+      usage: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="rgba(123,140,222,0.12)" stroke="rgba(123,140,222,0.3)" stroke-width="1"/>
+        <path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="rgba(123,140,222,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="4" fill="rgba(123,140,222,0.2)" stroke="#7B8CDE" stroke-width="1.5"/>
+        <path d="M12 10v4M10 12h4" stroke="#7B8CDE" stroke-width="2" stroke-linecap="round"/>
+      </svg>`,
+      warning: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L2 20h20L12 2z" fill="rgba(255,185,151,0.15)" stroke="rgba(255,185,151,0.4)" stroke-width="1" stroke-linejoin="round"/>
+        <path d="M12 9v5" stroke="#FFB997" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="12" cy="17" r="1.2" fill="#FFB997"/>
+      </svg>`,
+      practice: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="2" width="20" height="20" rx="4" fill="rgba(182,164,206,0.12)" stroke="rgba(182,164,206,0.3)" stroke-width="1"/>
+        <path d="M8 12l3 3 5-6" stroke="#B6A4CE" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="17" cy="7" r="2" fill="rgba(182,164,206,0.3)" stroke="#B6A4CE" stroke-width="1"/>
+        <path d="M16.3 6.3l1.4 1.4" stroke="#B6A4CE" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>`,
+    };
+    const svg = svgs[type] || svgs['grammar'];
+    this.blockIconCache[type] = this.sanitizer.bypassSecurityTrustHtml(svg);
+    return this.blockIconCache[type];
   }
 
   async processVocabulary(context: ServiceContext, fullScan = false): Promise<void> {
     try {
       const messages = fullScan ? this.chatMessages.slice(-10) : this.chatMessages.slice(-3);
+      console.log('[DEBUG] processVocabulary called with', messages.length, 'messages, fullScan:', fullScan);
       await this.vocabularyService.processConversation(messages, context);
+      console.log('[DEBUG] processVocabulary completed');
     } catch (error) {
-      console.error('Error processing vocabulary:', error);
+      console.error('[DEBUG] Error processing vocabulary:', error);
     }
   }
 

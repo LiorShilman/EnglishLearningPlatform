@@ -102,7 +102,7 @@
                 <div class="learning-blocks" *ngIf="message.learningBlocks?.length">
                   <div *ngFor="let block of message.learningBlocks; trackBy: trackByBlockIndex" class="learning-block {{block.type}}">
                     <div class="block-header">
-                      <span class="block-icon">{{getBlockIcon(block.type)}}</span>
+                      <span class="block-icon" [innerHTML]="getBlockIcon(block.type)"></span>
                       <span class="block-title">{{block.title}}</span>
                     </div>
 
@@ -131,13 +131,19 @@
             <div class="message-actions" *ngIf="message.sender === 'user'">
               <button class="action-btn retry-btn" (click)="retryMessage(message)" title="Retry this question"
                 [disabled]="isAssistantThinking">
-                <span class="action-icon">&#x21BB;</span>
+                <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="1 4 1 10 7 10"/>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                </svg>
               </button>
             </div>
             <div class="message-actions" *ngIf="message.sender === 'assistant' && isLastAssistantMessage(message)">
               <button class="action-btn delete-btn" (click)="deleteLastResponse()" title="Delete this response"
                 [disabled]="isAssistantThinking">
-                <span class="action-icon">&#x2715;</span>
+                <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
               </button>
             </div>
           </div>
@@ -174,7 +180,12 @@
 
           <div class="input-buttons">
             <button class="mic-button" [class.recording]="isRecording" (click)="toggleSpeechRecognition()">
-              <span class="icon">🎤</span>
+              <svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
               <span class="recording-indicator" *ngIf="isRecording"></span>
             </button>
 
@@ -190,23 +201,42 @@
     <!-- Floating Action Bar -->
     <div class="floating-actions">
       <button class="fab-btn primary" (click)="toggleVocabulary()" [title]="isVocabularyVisible ? 'Hide Vocabulary' : 'Show Vocabulary'">
-        <span class="fab-icon">V</span>
+        <svg class="fab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          <path d="M8 7h8M8 11h6"/>
+        </svg>
       </button>
 
       <button class="fab-btn" (click)="onShowSummary()" title="Conversation Summary | סיכום שיחה">
-        <span class="fab-icon">S</span>
+        <svg class="fab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
       </button>
 
       <button class="fab-btn" *ngIf="showScrollButton" (click)="scrollToBottom()" title="Scroll to bottom">
-        <span class="fab-icon scroll-icon">&#x2193;</span>
+        <svg class="fab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
       </button>
 
       <button class="fab-btn" (click)="startNewConversation()" title="New conversation | שיחה חדשה">
-        <span class="fab-icon">+</span>
+        <svg class="fab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          <line x1="12" y1="8" x2="12" y2="14"/>
+          <line x1="9" y1="11" x2="15" y2="11"/>
+        </svg>
       </button>
 
       <button class="fab-btn" (click)="toggleHistory()" [class.active]="showHistory" title="Conversation history | היסטוריית שיחות">
-        <span class="fab-icon">&#x2630;</span>
+        <svg class="fab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
       </button>
     </div>
 
@@ -226,7 +256,9 @@
           <span class="hebrew">שיחות</span>
         </div>
         <button class="history-close" (click)="toggleHistory()">
-          <span>&#x2715;</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
       </div>
 
@@ -249,7 +281,9 @@
             </div>
           </button>
           <button class="history-delete" (click)="deleteConversation(session, $event)" title="Delete | מחק">
-            <span>&#x2715;</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
           </button>
         </div>
       </div>

@@ -18,7 +18,7 @@ export class VocabularyClaudeService {
 
       const response = await this.claudeApi.createMessage({
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 1024,
+        max_tokens: 4096,
         temperature: 0.3,
         system: `You are a vocabulary extraction tool. Return ONLY valid JSON, no markdown, no explanation.`,
         messages: [{
@@ -48,18 +48,23 @@ Return a JSON object with this exact structure:
 }
 
 Rules:
+- Return at most 5 vocabulary items (the most useful ones)
 - suggestedCategory must be one of: nouns, verbs, adjectives, phrases, idioms
 - suggestedLevel: 1-4
 - confidence: 0-1 (how useful the word is for this learner)
-- Each item MUST have at least one example
-- Return ONLY the JSON object, nothing else`
+- Each item MUST have exactly 1 example (not more)
+- Return ONLY the JSON object, no markdown, no explanation`
         }]
       });
 
       const content = response.content?.[0]?.text || '';
-      return this.parseVocabularyResponse(content);
+      console.log('[DEBUG] VocabClaude: raw response length:', content.length);
+      console.log('[DEBUG] VocabClaude: raw response (first 300):', content.substring(0, 300));
+      const result = this.parseVocabularyResponse(content);
+      console.log('[DEBUG] VocabClaude: parsed', result.length, 'vocab items');
+      return result;
     } catch (error) {
-      console.error('Error analyzing conversation:', error);
+      console.error('[DEBUG] VocabClaude: Error analyzing conversation:', error);
       return [];
     }
   }
@@ -72,23 +77,45 @@ Rules:
         .replace(/```\n?/g, '')
         .trim();
 
+      console.log('[DEBUG] VocabParse: after markdown clean, length:', cleaned.length);
+
       // Try to extract JSON from content
       const jsonStart = cleaned.indexOf('{');
       const jsonEnd = cleaned.lastIndexOf('}');
       if (jsonStart === -1 || jsonEnd === -1) {
-        console.warn('No JSON found in vocabulary response');
+        console.warn('[DEBUG] VocabParse: No JSON braces found');
         return [];
       }
       cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+      console.log('[DEBUG] VocabParse: JSON substring length:', cleaned.length);
 
-      const jsonData = JSON.parse(cleaned);
+      let jsonData;
+      try {
+        jsonData = JSON.parse(cleaned);
+      } catch (parseErr) {
+        // Try to fix truncated JSON by closing open brackets/braces
+        console.warn('[DEBUG] VocabParse: JSON parse failed, attempting repair');
+        let repaired = cleaned;
+        // Remove last incomplete object/element
+        repaired = repaired.replace(/,\s*\{[^}]*$/, '');
+        repaired = repaired.replace(/,\s*"[^"]*$/, '');
+        // Count and close open brackets
+        const openBraces = (repaired.match(/\{/g) || []).length - (repaired.match(/\}/g) || []).length;
+        const openBrackets = (repaired.match(/\[/g) || []).length - (repaired.match(/\]/g) || []).length;
+        for (let i = 0; i < openBrackets; i++) repaired += ']';
+        for (let i = 0; i < openBraces; i++) repaired += '}';
+        console.log('[DEBUG] VocabParse: repaired JSON, trying again');
+        jsonData = JSON.parse(repaired);
+      }
+      console.log('[DEBUG] VocabParse: JSON parsed, keys:', Object.keys(jsonData));
       const vocabItems = jsonData.vocabulary;
       if (!Array.isArray(vocabItems)) {
-        console.warn('Vocabulary is not an array:', vocabItems);
+        console.warn('[DEBUG] VocabParse: vocabulary is not array:', typeof vocabItems, vocabItems);
         return [];
       }
+      console.log('[DEBUG] VocabParse: vocabItems count:', vocabItems.length);
 
-      return vocabItems
+      const mapped = vocabItems
         .map((item: RawVocabItem) => ({
           english: String(item.english || ''),
           hebrew: String(item.hebrew || ''),
@@ -102,10 +129,15 @@ Rules:
           suggestedLevel: Math.min(Math.max(1, Number(item.suggestedLevel) || 1), 4),
           suggestedCategory: this.validateCategory(item.suggestedCategory || ''),
           confidence: Math.min(Math.max(0, Number(item.confidence) || 0), 1)
-        }) as AutoVocabCard)
-        .filter(item => item.english && item.hebrew);
+        }) as AutoVocabCard);
+
+      console.log('[DEBUG] VocabParse: mapped items:', mapped.length, 'first:', mapped[0]);
+      const filtered = mapped.filter(item => item.english && item.hebrew);
+      console.log('[DEBUG] VocabParse: after filter:', filtered.length);
+
+      return filtered;
     } catch (error) {
-      console.error('Error parsing vocabulary response:', error);
+      console.error('[DEBUG] VocabParse: Error:', error);
       return [];
     }
   }
