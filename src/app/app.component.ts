@@ -24,6 +24,7 @@ import { SessionMetadata } from './shared/interfaces/conversation-session.interf
 import { GamificationService } from './services/gamification.service';
 import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { LandingComponent } from './components/landing/landing.component';
 
 @Component({
   selector: 'app-root',
@@ -35,7 +36,8 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
     VocabularyComponent,
     VirtualAvatarComponent,
     AssessmentComponent,
-    SummaryComponent
+    SummaryComponent,
+    LandingComponent
   ],
   providers: [VirtualAvatarService],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -58,6 +60,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   private scrollObserver: MutationObserver | null = null;
   private scrollListener: (() => void) | null = null;
   private retryIntervalId: ReturnType<typeof setInterval> | null = null;
+  showLanding = !localStorage.getItem('hasSeenLanding');
   currentStage: 'assessment' | 'topic-selection' | 'conversation' = 'assessment';
   userAssessmentComplete = false;
   userInput = '';
@@ -192,6 +195,12 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         });
       }, 100);
     });
+  }
+
+  // Landing page callback
+  onLandingComplete(): void {
+    this.showLanding = false;
+    localStorage.setItem('hasSeenLanding', 'true');
   }
 
   // Assessment callback

@@ -1,0 +1,310 @@
+<div class="landing-page" dir="ltr">
+
+  <!-- ═══════════════════ HERO ═══════════════════ -->
+  <section class="hero-section">
+    <div class="aurora-bg"></div>
+
+    <!-- Floating word chips -->
+    <div class="word-chips-layer">
+      <div
+        *ngFor="let chip of wordChips"
+        class="word-chip"
+        [class]="'word-chip chip-' + chip.color"
+        [style.left.%]="chip.x"
+        [style.top.%]="chip.y"
+        [style.animation-duration]="chip.duration + 's'"
+        [style.animation-delay]="chip.delay + 's'"
+      >
+        <span class="chip-en">{{ chip.en }}</span>
+        <span class="chip-he">{{ chip.he }}</span>
+      </div>
+    </div>
+
+    <div class="hero-content fadeInUp">
+      <h1 class="hero-title">
+        <span class="title-en">Master English. <em>Naturally.</em></span>
+        <span class="title-he" dir="rtl">לדבר אנגלית. <em>בצורה טבעית.</em></span>
+      </h1>
+      <p class="hero-subtitle">
+        <span class="sub-en">AI-powered conversations that adapt to <strong>your</strong> level</span>
+        <span class="sub-he" dir="rtl">שיחות AI שמתאימות לרמה שלך</span>
+      </p>
+      <button class="cta-btn shimmer" (click)="onStartJourney()">
+        <span class="cta-text-stack">
+          <span class="cta-en">Start Your Journey</span>
+          <span class="cta-he">התחל את המסע</span>
+        </span>
+        <svg class="cta-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="scroll-hint">
+      <div class="scroll-mouse">
+        <div class="scroll-dot"></div>
+      </div>
+      <span>Scroll to explore</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ LIVE DEMO ═══════════════════ -->
+  <section class="demo-section">
+    <div class="section-header fadeInUp">
+      <h2 class="section-title">
+        <span>See It In Action</span>
+        <span class="title-he-small" dir="rtl">ראה את זה בפעולה</span>
+      </h2>
+      <p class="section-subtitle">Watch how AI helps you learn from your mistakes in real-time</p>
+    </div>
+
+    <div class="demo-window fadeInUp">
+      <div class="demo-titlebar">
+        <div class="demo-dots">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </div>
+        <span class="demo-titlebar-text">AI English Tutor</span>
+      </div>
+      <div class="demo-chat">
+        <div
+          *ngFor="let msg of demoMessages"
+          class="demo-bubble"
+          [class.user-bubble]="msg.sender === 'user'"
+          [class.assistant-bubble]="msg.sender === 'assistant'"
+        >
+          <div class="bubble-avatar">
+            <span *ngIf="msg.sender === 'user'">You</span>
+            <span *ngIf="msg.sender === 'assistant'">AI</span>
+          </div>
+          <div class="bubble-text" [innerHTML]="msg.text"></div>
+        </div>
+
+        <!-- Thinking dots -->
+        <div class="demo-bubble assistant-bubble" *ngIf="showThinkingDots">
+          <div class="bubble-avatar"><span>AI</span></div>
+          <div class="bubble-text thinking-dots">
+            <span class="dot-bounce"></span>
+            <span class="dot-bounce"></span>
+            <span class="dot-bounce"></span>
+          </div>
+        </div>
+
+        <!-- Learning block -->
+        <div class="demo-learning-block" *ngIf="showLearningBlock">
+          <div class="learning-block-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#70C1B3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            <span>Grammar Tip</span>
+          </div>
+          <p class="learning-block-text">
+            <strong>"go"</strong> is an irregular verb. Past tense: <strong>went</strong> (not "goed").<br>
+            <strong>"buy"</strong> is also irregular: <strong>bought</strong> (not "buyed").
+          </p>
+        </div>
+
+        <!-- Vocab card -->
+        <div class="demo-vocab-card" *ngIf="showVocabCard">
+          <div class="vocab-card-badge">New Word</div>
+          <div class="vocab-card-word">went</div>
+          <div class="vocab-card-translation" dir="rtl">הלך (עבר)</div>
+          <div class="vocab-card-example">"I <strong>went</strong> to the store yesterday."</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ FEATURES ═══════════════════ -->
+  <section class="features-section" [class.visible]="featuresVisible">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span>Everything You Need</span>
+        <span class="title-he-small" dir="rtl">כל מה שצריך</span>
+      </h2>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card" style="--accent: var(--periwinkle); --delay: 0s">
+        <div class="feature-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--periwinkle)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a8 8 0 0 0-8 8c0 3.4 2.1 6.4 5.1 7.6.3.1.5.4.5.7V20h4.8v-1.7c0-.3.2-.6.5-.7A8 8 0 0 0 12 2z" fill="rgba(123,140,222,0.15)"/>
+            <path d="M10 20v1a2 2 0 1 0 4 0v-1"/>
+            <line x1="12" y1="2" x2="12" y2="6" opacity="0.4"/><line x1="4.9" y1="4.9" x2="7.8" y2="7.8" opacity="0.4"/>
+            <line x1="19.1" y1="4.9" x2="16.2" y2="7.8" opacity="0.4"/>
+          </svg>
+        </div>
+        <h3>AI Conversations</h3>
+        <p class="feature-he" dir="rtl">שיחות AI חכמות</p>
+        <p class="feature-desc">Chat naturally with an AI tutor that understands your level and adapts in real-time.</p>
+      </div>
+
+      <div class="feature-card" style="--accent: var(--teal); --delay: 0.1s">
+        <div class="feature-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="rgba(112,193,179,0.15)"/>
+          </svg>
+        </div>
+        <h3>Real-time Corrections</h3>
+        <p class="feature-he" dir="rtl">תיקונים בזמן אמת</p>
+        <p class="feature-desc">Get instant grammar and usage feedback with clear explanations in both languages.</p>
+      </div>
+
+      <div class="feature-card" style="--accent: var(--lavender); --delay: 0.2s">
+        <div class="feature-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--lavender)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" fill="rgba(182,164,206,0.12)"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill="rgba(182,164,206,0.08)"/>
+            <line x1="8" y1="7" x2="16" y2="7" opacity="0.5"/><line x1="8" y1="11" x2="14" y2="11" opacity="0.5"/>
+          </svg>
+        </div>
+        <h3>Vocabulary Cards</h3>
+        <p class="feature-he" dir="rtl">כרטיסיות מילים</p>
+        <p class="feature-desc">New words are automatically captured and organized for spaced repetition review.</p>
+      </div>
+
+      <div class="feature-card" style="--accent: var(--coral); --delay: 0.3s">
+        <div class="feature-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" fill="rgba(255,185,151,0.1)"/>
+            <circle cx="12" cy="12" r="6" fill="rgba(255,185,151,0.08)"/>
+            <circle cx="12" cy="12" r="2" fill="var(--coral)" opacity="0.6"/>
+          </svg>
+        </div>
+        <h3>Progress Tracking</h3>
+        <p class="feature-he" dir="rtl">מעקב התקדמות</p>
+        <p class="feature-desc">Visual dashboards track your improvement across all four language skills.</p>
+      </div>
+
+      <div class="feature-card" style="--accent: var(--teal); --delay: 0.4s">
+        <div class="feature-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="rgba(112,193,179,0.12)"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </div>
+        <h3>Speech Recognition</h3>
+        <p class="feature-he" dir="rtl">זיהוי דיבור</p>
+        <p class="feature-desc">Practice speaking with voice input and get pronunciation guidance.</p>
+      </div>
+
+      <div class="feature-card" style="--accent: var(--periwinkle); --delay: 0.5s">
+        <div class="feature-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--periwinkle)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" fill="rgba(123,140,222,0.08)"/>
+            <line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
+        <h3>Bilingual Feedback</h3>
+        <p class="feature-he" dir="rtl">משוב דו-לשוני</p>
+        <p class="feature-desc">Every explanation comes in both English and Hebrew for complete understanding.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ HOW IT WORKS ═══════════════════ -->
+  <section class="steps-section" [class.visible]="stepsVisible">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span>How It Works</span>
+        <span class="title-he-small" dir="rtl">איך זה עובד</span>
+      </h2>
+    </div>
+
+    <div class="steps-track">
+      <div class="steps-line"></div>
+
+      <div class="step-item" style="--delay: 0s">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>Quick Assessment</h3>
+          <p class="step-he" dir="rtl">הערכה מהירה</p>
+          <p class="step-desc">Rate your skills in 4 areas — speaking, writing, grammar, and vocabulary. Takes under a minute.</p>
+        </div>
+      </div>
+
+      <div class="step-item" style="--delay: 0.2s">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>AI Conversations</h3>
+          <p class="step-he" dir="rtl">שיחות AI</p>
+          <p class="step-desc">Chat freely on topics you love. The AI adapts its complexity to your level and provides corrections.</p>
+        </div>
+      </div>
+
+      <div class="step-item" style="--delay: 0.4s">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>See Your Progress</h3>
+          <p class="step-he" dir="rtl">ראה את ההתקדמות</p>
+          <p class="step-desc">Track vocabulary growth, review stats, and see conversation summaries after every session.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ STATS ═══════════════════ -->
+  <section class="stats-section" [class.visible]="statsVisible">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-number">{{ statCounters[0] }}</div>
+        <div class="stat-label">Skills Tracked</div>
+        <div class="stat-he" dir="rtl">מיומנויות</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">24/7</div>
+        <div class="stat-label">AI Available</div>
+        <div class="stat-he" dir="rtl">AI בזמן אמת</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">{{ statCounters[2] }}</div>
+        <div class="stat-label">Languages</div>
+        <div class="stat-he" dir="rtl">דו-לשוני</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">{{ statCounters[3] }}%</div>
+        <div class="stat-label">Adaptive</div>
+        <div class="stat-he" dir="rtl">מותאם אישית</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ QUOTE ═══════════════════ -->
+  <section class="quote-section" [class.visible]="quoteVisible">
+    <div class="quote-card">
+      <svg class="quote-mark" width="48" height="48" viewBox="0 0 24 24" fill="rgba(123,140,222,0.2)">
+        <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
+        <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
+      </svg>
+      <blockquote class="quote-en">
+        "The best way to learn a language is to use it every day."
+      </blockquote>
+      <blockquote class="quote-he" dir="rtl">
+        "הדרך הטובה ביותר ללמוד שפה היא להשתמש בה כל יום."
+      </blockquote>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ FINAL CTA ═══════════════════ -->
+  <section class="cta-section">
+    <div class="cta-content fadeInUp">
+      <h2 class="cta-title">
+        <span>Ready to Begin?</span>
+        <span class="title-he-small" dir="rtl">מוכן להתחיל?</span>
+      </h2>
+      <p class="cta-subtitle">Your personalized English learning journey starts now</p>
+      <button class="cta-btn cta-btn-large shimmer" (click)="onStartJourney()">
+        <span class="cta-text-stack">
+          <span class="cta-en">Start Learning Now</span>
+          <span class="cta-he">התחל ללמוד עכשיו</span>
+        </span>
+        <svg class="cta-arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+  </section>
+
+</div>

@@ -1,4 +1,10 @@
-<div class="conversation-container">
+<!-- Landing Page -->
+<app-landing
+  *ngIf="showLanding"
+  (landingComplete)="onLandingComplete()">
+</app-landing>
+
+<div class="conversation-container" *ngIf="!showLanding">
   <!-- Ambient Particles -->
   <div class="ambient-particles" aria-hidden="true">
     <span class="particle" style="--size:3px; --color:rgba(123,140,222,0.12); --duration:18s; --delay:0s; --drift:30px; --max-opacity:0.2; left:10%"></span>
