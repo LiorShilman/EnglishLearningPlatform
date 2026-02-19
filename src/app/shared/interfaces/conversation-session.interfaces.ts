@@ -5,6 +5,7 @@ export interface ConversationSession {
   userLevel: UserLevel;
   chatMessages: EnhancedChatMessage[];
   currentTopic: Topic | null;
+  conversationMode?: string;
   lastProgressUpdate?: {
     metrics: ProgressMetrics;
     focusAreas: FocusArea[];

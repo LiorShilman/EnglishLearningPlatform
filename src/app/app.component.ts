@@ -11,6 +11,7 @@ import {
   Topic,
   ServiceContext,
   EnhancedChatMessage,
+  ConversationMode,
 } from './shared/interfaces/english-learning.interfaces';
 import { MarkdownPipe } from './pipes/markdown.pipe';
 import * as annyang from 'annyang';
@@ -25,6 +26,9 @@ import { GamificationService } from './services/gamification.service';
 import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { LandingComponent } from './components/landing/landing.component';
+import { ModeSelectionComponent } from './components/mode-selection/mode-selection.component';
+import { ConversationModeService } from './services/conversation-mode.service';
+import { DailyChallengeComponent } from './components/daily-challenge/daily-challenge.component';
 
 @Component({
   selector: 'app-root',
@@ -37,7 +41,9 @@ import { LandingComponent } from './components/landing/landing.component';
     VirtualAvatarComponent,
     AssessmentComponent,
     SummaryComponent,
-    LandingComponent
+    LandingComponent,
+    ModeSelectionComponent,
+    DailyChallengeComponent
   ],
   providers: [VirtualAvatarService],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -63,6 +69,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   showLanding = !localStorage.getItem('hasSeenLanding');
   currentStage: 'assessment' | 'topic-selection' | 'conversation' = 'assessment';
   userAssessmentComplete = false;
+  selectedMode: ConversationMode | null = null;
   userInput = '';
   isRecording = false;
   lastProgressUpdate?: {
@@ -108,7 +115,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     private gamificationService: GamificationService,
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private conversationModeService: ConversationModeService
   ) {
     if (annyang) {
       this.annyang = annyang;
@@ -163,6 +171,16 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.currentStage = session.currentStage;
       this.userAssessmentComplete = true;
 
+      // Restore conversation mode
+      const modeId = (session as any).conversationMode;
+      if (modeId) {
+        const mode = this.conversationModeService.getMode(modeId);
+        if (mode) {
+          this.selectedMode = mode;
+          this.conversationModeService.selectMode(modeId);
+        }
+      }
+
       this.cdr.detectChanges();
 
       setTimeout(() => {
@@ -203,10 +221,30 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     localStorage.setItem('hasSeenLanding', 'true');
   }
 
+  // Daily challenge callback
+  onChallengeCompleted(correct: boolean): void {
+    if (correct) {
+      this.triggerCelebration('⭐', 'Challenge Complete!', 'האתגר הושלם!');
+    }
+  }
+
   // Assessment callback
   async onAssessmentComplete(level: UserLevel): Promise<void> {
     this.userLevel = level;
     this.userAssessmentComplete = true;
+    this.currentStage = 'topic-selection';
+
+    const leveledUp = this.gamificationService.addXP(50);
+    if (leveledUp) {
+      this.triggerCelebration('🎓', 'Level Up!', 'עלית רמה!');
+    }
+  }
+
+  // Mode selection callback
+  async onModeSelected(mode: ConversationMode): Promise<void> {
+    this.selectedMode = mode;
+    this.conversationModeService.selectMode(mode.id);
+    this.currentStage = 'conversation';
 
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -218,18 +256,12 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         this.initVirtualAvatar();
       }
 
-      this.chatMessages.push(this.buildWelcomeMessage(this.userLevel));
-      this.currentStage = 'conversation';
+      this.chatMessages.push(this.buildWelcomeMessage(this.userLevel, mode));
       this.saveCurrentSession();
-
-      const leveledUp = this.gamificationService.addXP(50);
-      if (leveledUp) {
-        this.triggerCelebration('🎓', 'Level Up!', 'עלית רמה!');
-      }
 
       setTimeout(() => this.scrollToBottom(), 150);
     } catch (error) {
-      console.error('[AppComponent] Error during assessment completion:', error);
+      console.error('[AppComponent] Error during mode selection:', error);
     }
   }
 
@@ -441,6 +473,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         conversationContext: {
           isFirstMessage: isFirstUserMessage,
           currentTopic: this.currentTopic,
+          modePromptAddition: this.selectedMode?.systemPromptAddition || '',
           lastProgressUpdate: this.lastProgressUpdate
         }
       };
@@ -603,6 +636,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     return colors[name] || '#7B8CDE';
   }
 
+  getSafeIcon(svg: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(svg);
+  }
+
   private blockIconCache: Record<string, SafeHtml> = {};
 
   getBlockIcon(type: string): SafeHtml {
@@ -666,6 +703,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         userLevel: this.userLevel,
         chatMessages: this.chatMessages,
         currentTopic: this.currentTopic,
+        conversationMode: this.selectedMode?.id || undefined,
         lastProgressUpdate: this.lastProgressUpdate,
         currentStage: this.currentStage
       };
@@ -695,6 +733,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.lastProgressUpdate = undefined;
     this.currentStage = 'assessment';
     this.userAssessmentComplete = false;
+    this.selectedMode = null;
+    this.conversationModeService.clearSelection();
     this.showHistory = false;
   }
 
@@ -768,7 +808,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.processVocabulary(context, true);
   }
 
-  private buildWelcomeMessage(level: UserLevel): EnhancedChatMessage {
+  private buildWelcomeMessage(level: UserLevel, mode?: ConversationMode): EnhancedChatMessage {
     const levelNames: Record<number, { en: string; he: string }> = {
       1: { en: 'Beginner', he: 'מתחיל' },
       2: { en: 'Elementary', he: 'בסיסי' },
@@ -784,9 +824,31 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         return `| ${label} | ${name.en} (${val}) |`;
       }).join('\n');
 
+    // Mode-specific welcome or default free conversation
+    const isThemed = mode && mode.id !== 'free' && mode.welcomeMessageEn;
+
+    const topicSection = isThemed
+      ? `## ${mode.nameEn}\n\n${mode.welcomeMessageEn}\n\n---\n\n**Suggested starters:**\n${mode.suggestedTopics.map((t, i) => `${i + 1}. **${t}**`).join('\n')}`
+      : `## Let's Start a Conversation
+
+Choose a topic that interests you, or suggest your own:
+
+### Daily Life Topics
+1. **My Daily Routine** - Talk about your typical day
+2. **My Favorite Food** - Describe what you like to eat
+3. **My Family** - Tell me about the people in your family
+
+### Fun & Creative Topics
+4. **My Hobbies** - What do you do for fun?
+5. **Weekend Plans** - What do you like to do on weekends?
+
+### Simple Practice Scenarios
+6. **At the Store** - Practice shopping conversations
+7. **Meeting Someone New** - Practice introductions`;
+
     const english = `# Welcome to Your English Learning Journey
 
-Hello! I'm your AI English learning companion. I'm excited to help you improve your English skills through engaging conversations and personalized feedback!
+Hello! I'm your AI English learning companion. I'm excited to help you improve your English skills!
 
 ---
 
@@ -798,22 +860,7 @@ ${skillRows}
 
 ---
 
-## Let's Start a Conversation
-
-Choose a topic that interests you, or suggest your own:
-
-### Daily Life Topics
-1. **My Daily Routine** - Talk about your typical day
-2. **My Favorite Food** - Describe what you like to eat
-3. **My Family** - Tell me about the people in your family
-
-### Fun & Creative Topics
-1. **My Hobbies** - What do you do for fun?
-2. **Weekend Plans** - What do you like to do on weekends?
-
-### Simple Practice Scenarios
-1. **At the Store** - Practice shopping conversations
-2. **Meeting Someone New** - Practice introductions
+${topicSection}
 
 ---
 
@@ -824,20 +871,23 @@ Choose a topic that interests you, or suggest your own:
 - We practice together
 - You improve step by step
 
-Which topic would you like to talk about? Or tell me your own idea!
-Type your choice (1-7) or write your own topic in English!`;
+${isThemed ? `Let's begin the **${mode.nameEn}** scenario!` : 'Which topic would you like to talk about? Or tell me your own idea!'}`;
+
+    const hebrewTopicSection = isThemed
+      ? `### ${mode.nameHe}\n\n${mode.welcomeMessageHe}`
+      : `### הרמה שלך כרגע
+- כתיבה: ${levelNames[level.writing]?.he || 'מתחיל'}
+- דקדוק: ${levelNames[level.grammar]?.he || 'מתחיל'}
+- אוצר מילים: ${levelNames[level.vocabulary]?.he || 'מתחיל'}
+- דיבור: ${levelNames[level.speaking]?.he || 'מתחיל'}
+
+בחר נושא שמעניין אותך, או הצע נושא משלך!`;
 
     const hebrew = `# ברוך הבא למסע לימוד האנגלית שלך
 
-היי! אני קלוד, המלווה שלך ללימוד אנגלית. אני כאן לעזור לך לשפר את האנגלית שלך בצורה מהנה!
+היי! אני המלווה שלך ללימוד אנגלית. אני כאן לעזור לך לשפר את האנגלית שלך בצורה מהנה!
 
-### הרמה שלך כרגע
-- כתיבה: ${levelNames[level.writing]?.he || 'מתחיל'} - נתמקד במשפטים פשוטים
-- דקדוק: ${levelNames[level.grammar]?.he || 'מתחיל'} - נלמד חוקים בסיסיים
-- אוצר מילים: ${levelNames[level.vocabulary]?.he || 'מתחיל'} - נרחיב את המילים שלך
-- דיבור: ${levelNames[level.speaking]?.he || 'מתחיל'} - נתרגל ביטויים יומיומיים
-
-בחר נושא שמעניין אותך, או הצע נושא משלך!`;
+${hebrewTopicSection}`;
 
     return {
       sender: 'assistant',

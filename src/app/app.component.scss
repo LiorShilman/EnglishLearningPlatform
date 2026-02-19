@@ -241,6 +241,29 @@
     border: 1px solid var(--border-subtle);
     font-size: 0.9rem;
   }
+
+  .mode-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(123, 140, 222, 0.08);
+    border: 1px solid rgba(123, 140, 222, 0.15);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+
+    .mode-badge {
+      display: flex;
+      align-items: center;
+      svg { width: 16px; height: 16px; }
+    }
+
+    .hebrew {
+      margin-left: auto;
+      opacity: 0.6;
+    }
+  }
 }
 
 .chat-header-title {

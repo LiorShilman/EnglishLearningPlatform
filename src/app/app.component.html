@@ -25,8 +25,14 @@
     (assessmentComplete)="onAssessmentComplete($event)">
   </app-assessment>
 
+  <!-- Mode Selection -->
+  <app-mode-selection
+    *ngIf="userAssessmentComplete && currentStage === 'topic-selection'"
+    (modeSelected)="onModeSelected($event)">
+  </app-mode-selection>
+
   <!-- Main Chat Section -->
-  <section class="chat-section" *ngIf="userAssessmentComplete">
+  <section class="chat-section" *ngIf="userAssessmentComplete && currentStage === 'conversation'">
     <div class="split-view">
       <!-- Left Panel: Vocabulary -->
       <div class="vocabulary-panel" [class.collapsed]="!isVocabularyVisible">
@@ -66,6 +72,12 @@
             <span class="hebrew"> - בואו נתרגל אנגלית</span>
           </div>
 
+          <div class="mode-indicator" *ngIf="selectedMode && selectedMode.id !== 'free'">
+            <span class="mode-badge" [innerHTML]="getSafeIcon(selectedMode.icon)"></span>
+            <span class="english">{{ selectedMode.nameEn }}</span>
+            <span class="hebrew">{{ selectedMode.nameHe }}</span>
+          </div>
+
           <div class="level-indicator" *ngIf="currentTopic">
             <span class="english">Current Topic: {{currentTopic.english}}</span>
             <span class="hebrew">נושא נוכחי: {{currentTopic.hebrew}}</span>
@@ -86,6 +98,11 @@
             </div>
           </div>
         </div>
+
+        <!-- Daily Challenge -->
+        <app-daily-challenge
+          (challengeCompleted)="onChallengeCompleted($event)">
+        </app-daily-challenge>
 
         <!-- Chat Messages -->
         <div #scrollContainer class="chat-messages">

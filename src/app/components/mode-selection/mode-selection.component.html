@@ -1,0 +1,31 @@
+<div class="mode-selection">
+  <div class="mode-header">
+    <h2 class="mode-title">
+      <span class="title-en">Choose Your Practice Mode</span>
+      <span class="title-he" dir="rtl">בחר מצב תרגול</span>
+    </h2>
+    <p class="mode-subtitle">
+      <span class="sub-en">Select a scenario to practice, or start a free conversation</span>
+      <span class="sub-he" dir="rtl">בחר תרחיש לתרגול, או התחל שיחה חופשית</span>
+    </p>
+  </div>
+
+  <div class="modes-grid">
+    <div
+      *ngFor="let mode of modes"
+      class="mode-card"
+      [class.mode-free]="mode.id === 'free'"
+      (click)="selectMode(mode)"
+    >
+      <div class="mode-icon" [innerHTML]="getSafeIcon(mode.icon)"></div>
+      <div class="mode-info">
+        <h3 class="mode-name">{{ mode.nameEn }}</h3>
+        <p class="mode-name-he" dir="rtl">{{ mode.nameHe }}</p>
+        <p class="mode-desc">{{ mode.descriptionEn }}</p>
+      </div>
+      <svg class="mode-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    </div>
+  </div>
+</div>

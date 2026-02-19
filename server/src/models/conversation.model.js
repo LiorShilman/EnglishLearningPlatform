@@ -53,6 +53,10 @@ const conversationSchema = new mongoose.Schema({
       status: Number
     }]
   },
+  conversationMode: {
+    type: String,
+    default: null
+  },
   currentStage: {
     type: String,
     enum: ['assessment', 'topic-selection', 'conversation'],

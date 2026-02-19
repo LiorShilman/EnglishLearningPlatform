@@ -132,7 +132,8 @@ export interface Level {
 
 export interface ConversationContext {
     isFirstMessage: boolean;
-    currentTopic: Topic | null;  // Changed from undefined to null
+    currentTopic: Topic | null;
+    modePromptAddition?: string;
     lastProgressUpdate?: {
       metrics: ProgressMetrics;
       focusAreas: FocusArea[];
@@ -144,4 +145,40 @@ export interface ServiceContext {
   userLevel: UserLevel;
   previousMessages: ChatMessage[];
   conversationContext: ConversationContext;
+}
+
+// Conversation Modes
+export interface ConversationMode {
+  id: string;
+  nameEn: string;
+  nameHe: string;
+  descriptionEn: string;
+  descriptionHe: string;
+  icon: string;
+  systemPromptAddition: string;
+  welcomeMessageEn: string;
+  welcomeMessageHe: string;
+  suggestedTopics: string[];
+}
+
+// Daily Challenge
+export type ChallengeType = 'translate-en-he' | 'translate-he-en' | 'fix-grammar' | 'use-word' | 'fill-blank';
+
+export interface DailyChallenge {
+  id: string;
+  type: ChallengeType;
+  promptEn: string;
+  promptHe: string;
+  sentence: string;
+  hint?: string;
+}
+
+export interface DailyChallengeState {
+  date: string;
+  challenge: DailyChallenge;
+  completed: boolean;
+  userAnswer?: string;
+  isCorrect?: boolean;
+  feedbackEn?: string;
+  feedbackHe?: string;
 }

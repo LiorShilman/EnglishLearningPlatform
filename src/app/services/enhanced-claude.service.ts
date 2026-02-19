@@ -632,9 +632,10 @@ Before you response check again this pattern`;
 
   private buildCurrentMessagePrompt(message: string, context: ServiceContext): string {
     const errorAnalysis = this.getCurrentErrorAnalysis(message, context.userLevel);
+    const modeAddition = context.conversationContext.modePromptAddition || '';
 
     return `${this.baseSystemPrompt}
-
+${modeAddition ? `\n--- CONVERSATION MODE ---\n${modeAddition}\n--- END MODE ---\n` : ''}
 CRITICAL FORMAT REQUIREMENT:
 You MUST format ALL responses using EXACTLY this structure:
 
